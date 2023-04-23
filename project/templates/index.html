@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}South Texas's Platform for Streamlined Project Bidding{% endblock %}
+
+{% block content %}
+
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+    <div class="container my-5">
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                <div class="alert alert-success mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% else %}
+                <div class="alert alert-danger mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+{% endwith %}
+
+<div class="py-5" style="background-image:linear-gradient(#1e96fc, #11296b);">
+
+    <div class="container">
+        <div class="row mb-3">   
+            <div class="col-6 align-items-center d-flex">
+                <div class="text-center">
+                    <h1 style="color:#ededed">Find and Win Bids in South Texas</h1>
+                    <p style="color:#ededed">The Premier Resource for Government Contractors
+                        - The Ultimate Platform for Collaborative Innovation.</p>
+                </div>
+            </div>
+
+            <div class="col-6 align-items-center d-flex">
+                <div class="text-center">
+                    <p>an image</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-3">   
+            <div class="col-4 align-items-center justify-content-center d-flex">
+                <div class="text-center">
+                    <a href="{{ url_for('views.current_bids') }}">Current Bids</a>
+                </div>
+            </div>
+
+            <div class="col-4 align-items-center justify-content-center d-flex">
+                <div class="text-center">
+                    <a href="{{ url_for('views.closed_bids') }}">Closed Bids</a>
+                </div>
+            </div>
+
+            <div class="col-4 align-items-center justify-content-center d-flex">
+                <div class="text-center">
+                    <a href="{{ url_for('views.awarded_bids') }}">Awarded Bids</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
