@@ -1,1 +1,72 @@
-Awarded Bids
+{% extends 'base.html' %}
+
+{% block title %}STAR Current Bids{% endblock %}
+
+{% block content %}
+
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+    <div class="container my-5">
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                <div class="alert alert-success mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% else %}
+                <div class="alert alert-danger mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+{% endwith %}
+
+<div class="py-5">
+    <div class="container">
+        <div class="row mb-3">   
+            <div class="col-12 align-items-center d-flex">
+                <div class="text-center">
+                    <h1>Awarded Bids</h1>
+                    <p>A summary of the awarded bids and projects.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div>
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-center align-middle" scope="col">View Details</th>
+                    <th class="text-center align-middle" scope="col">Bid #</th>
+                    <th class="text-center align-middle" scope="col">Title</th>
+                    <th class="text-center align-middle" scope="col">Type</th>
+                    <th class="text-center align-middle" scope="col">Organization</th>
+                    <th class="text-center align-middle" scope="col">Issue Date</th>
+                    <th class="text-center align-middle" scope="col">Close Date</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                    <tr>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">a</td>
+                    </tr>
+
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}

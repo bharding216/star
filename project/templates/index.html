@@ -23,21 +23,21 @@
 {% endif %}
 {% endwith %}
 
-<div class="py-5" style="background-image:linear-gradient(#1e96fc, #11296b);">
+<div class="pt-3 pb-5" style="background-image:linear-gradient(#FFB67D, #FFFDD0);">
 
     <div class="container">
         <div class="row mb-3">   
             <div class="col-6 align-items-center d-flex">
                 <div class="text-center">
-                    <h1 style="color:#ededed">Find and Win Bids in South Texas</h1>
-                    <p style="color:#ededed">The Premier Resource for Government Contractors
+                    <h1 style="color:black" class="pb-4">Find and Win Bids in South Texas</h1>
+                    <p style="color:black">The Premier Resource for Government Contractors
                         - The Ultimate Platform for Collaborative Innovation.</p>
                 </div>
             </div>
 
-            <div class="col-6 align-items-center d-flex">
+            <div class="col-6 align-items-center justify-content-center d-flex">
                 <div class="text-center">
-                    <p>an image</p>
+                    <img src='/static/contract.png' alt="Two scientists working on a laptop and examining a chemical flask." style="max-width: 100%;" id="contract">
                 </div>
             </div>
         </div>
@@ -47,19 +47,25 @@
         <div class="row mb-3">   
             <div class="col-4 align-items-center justify-content-center d-flex">
                 <div class="text-center">
-                    <a href="{{ url_for('views.current_bids') }}">Current Bids</a>
+                    <a href="{{ url_for('views.current_bids') }}">
+                        <button type="button" class="btn btn-primary" data-aos="fade-up">Current bids</button>
+                    </a>                  
                 </div>
             </div>
 
             <div class="col-4 align-items-center justify-content-center d-flex">
                 <div class="text-center">
-                    <a href="{{ url_for('views.closed_bids') }}">Closed Bids</a>
+                    <a href="{{ url_for('views.closed_bids') }}">
+                        <button type="button" class="btn btn-primary" data-aos="fade-up">Closed bids</button>
+                    </a> 
                 </div>
             </div>
 
             <div class="col-4 align-items-center justify-content-center d-flex">
                 <div class="text-center">
-                    <a href="{{ url_for('views.awarded_bids') }}">Awarded Bids</a>
+                    <a href="{{ url_for('views.awarded_bids') }}">
+                        <button type="button" class="btn btn-primary" data-aos="fade-up">Awarded bids</button>
+                    </a>                 
                 </div>
             </div>
         </div>
