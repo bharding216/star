@@ -22,18 +22,50 @@
 {% endif %}
 {% endwith %}
 
-<div class="py-5">
-    <div class="container">
-        <div class="row mb-3">   
-            <div class="col-12 align-items-center d-flex">
-                <div class="text-center">
-                    <h1>A login page</h1>
+
+<div class="container my-5">
+
+    <form action="{{ url_for('views.login') }}" method="POST">
+
+        <h3 class="mb-3">Supplier Login</h3>
+
+        <div class="row">
+            <div class="col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input type="text" id="email" placeholder="email"
+                        class="form-control" name="email" value="{{ email }}">
+                    <label for="email">Email</label>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="form-floating mb-3">
+                    <input type="password" id="password" placeholder="Password"
+                        class="form-control" name="password">
+                    <label for="password">Password</label>
                 </div>
             </div>
         </div>
-    </div>
+
+        <button type="submit" class="btn btn-primary">Login</button>
+
+    </form>
+
 </div>
 
+
+<!--REQUEST TEST-->
+<div class="container my-5">
+
+        <h3 class="my-3">Need to create an account?</h3>
+
+        <a class="btn btn-primary mx-auto" 
+        href="{{ url_for('views.registration') }}" role="button"
+        style="width: auto">
+        Let's Get Started
+        </a>
+
+</div>
 
 
 {% endblock %}

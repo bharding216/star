@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
     session, send_file, jsonify, make_response, Response, send_from_directory
 # from flask_login import login_required, current_user, login_user
-# from project.models import tests, labs, labs_tests, individuals_login, labs_login, test_requests
+from project.models import bids, bid_contact, gov_login, supplier_info, supplier_login
 # from flask_mail import Message
-# from . import db, mail
+from . import db, mail
 # from helpers import generate_sitemap
 # from werkzeug.security import generate_password_hash, check_password_hash
 # from itsdangerous.exc import BadSignature
@@ -28,7 +28,15 @@ def registration():
 
 @views.route('/current_bids', methods=['GET', 'POST'])
 def current_bids():
-    return render_template('current_bids.html')
+    with db.session() as db_session:
+        current_bids = db_session.query(bids) \
+            .filter(bids.status == 'open') \
+            .order_by(bids.issue_date.desc()) \
+            .all()
+      
+    return render_template('current_bids.html',
+                            current_bids = current_bids
+                            )
 
 @views.route('/closed_bids', methods=['GET', 'POST'])
 def closed_bids():
@@ -38,6 +46,9 @@ def closed_bids():
 def awarded_bids():
     return render_template('awarded_bids.html')
 
+@views.route('/bid_details', methods=['GET', 'POST'])
+def bid_details():
+    return render_template('bid_details.html')
 
 @views.route('/login', methods=['GET', 'POST'])
 def login():

@@ -26,7 +26,7 @@
 <div class="py-5">
     <div class="container">
         <div class="row mb-3">   
-            <div class="col-12 align-items-center d-flex">
+            <div class="col-12 align-items-center justify-content-center d-flex">
                 <div class="text-center">
                     <h1>Current Bids</h1>
                     <p>A summary of the current projects that are accepting applications.</p>
@@ -38,12 +38,12 @@
 
 
 <div>
-    <div class="container">
-        <table>
+    <div class="container pb-5" style="overflow-x: auto;">
+        <table id="current_bids_table" style="margin: 0 auto">
             <thead>
                 <tr>
                     <th class="text-center align-middle" scope="col">View Details</th>
-                    <th class="text-center align-middle" scope="col">Bid #</th>
+                    <th class="text-center align-middle" style="width: 150px" scope="col">Bid #</th>
                     <th class="text-center align-middle" scope="col">Title</th>
                     <th class="text-center align-middle" scope="col">Type</th>
                     <th class="text-center align-middle" scope="col">Organization</th>
@@ -53,16 +53,21 @@
             </thead>
     
             <tbody>
+                {% for bid in current_bids %}
                     <tr>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle">
+                            <form action="{{ url_for('views.bid_details') }}" method="POST">
+                                <input type="submit" class="btn btn-primary mt-3 mb-1 btn-sm" value="View details">
+                            </form>
+                        </td>
+                        <td class="text-center align-middle">{{ bid.bid_number }}</td>
+                        <td class="text-center align-middle">{{ bid.title }}</td>
+                        <td class="text-center align-middle">{{ bid.type }}</td>
+                        <td class="text-center align-middle">{{ bid.organization }}</td>
+                        <td class="text-center align-middle">{{ bid.issue_date }}</td>
+                        <td class="text-center align-middle">{{ bid.close_date }}</td>
                     </tr>
-
+                {% endfor %}
             </tbody>
         </table>
     </div>

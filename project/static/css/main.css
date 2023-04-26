@@ -146,7 +146,7 @@ Mustard: #FFDB58
       width: 1200px;
     }
   
-    #user_requests_table {
+    #current_bids_table {
       width: 1000px;
     }
   
@@ -182,7 +182,7 @@ Mustard: #FFDB58
       width: 1200px;
     }
   
-    #user_requests_table {
+    #current_bids_table {
       width: 1000px;
     }
   
@@ -222,7 +222,7 @@ Mustard: #FFDB58
       width: 1200px;
     }
   
-    #user_requests_table {
+    #current_bids_table {
       width: 1000px;
     }
   
@@ -276,8 +276,8 @@ Mustard: #FFDB58
       width: 1200px;
     }
   
-    #user_requests_table {
-      width: 1200px;
+    #current_bids_table {
+      max-width: 100%;
     }
   
     .footer-row {
