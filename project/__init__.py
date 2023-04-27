@@ -24,7 +24,7 @@ def create_app():
     app.config['MYSQL_USER'] = os.getenv('mysql_user')
     app.config['MYSQL_PASSWORD'] = os.getenv('mysql_password')
     app.config['MYSQL_DB'] = os.getenv('mysql_db')
-    # app.config['SECRET_KEY'] = os.getenv('secret_key')
+    app.config['SECRET_KEY'] = os.getenv('secret_key')
     # app.config['SESSION_TYPE'] = 'filesystem'
     # app.config['SESSION_COOKIE_SECURE'] = True
     # Session(app)
@@ -63,7 +63,7 @@ def create_app():
         # from .blog import blog
         # from .contact import contact_bp
         # from .auth import auth_bp
-        # from .models import labs_login, individuals_login
+        from .models import user_login
 
         app.register_blueprint(views, url_prefix="/")
         # app.register_blueprint(blog, url_prefix="/blog")
@@ -72,19 +72,19 @@ def create_app():
 
         db.create_all()
 
-        # login_manager.login_view = "views.returning_user_login"
-        # login_manager.login_message = ""
-        # login_manager.login_message_category = "error"
-        # login_manager.init_app(app)
+        login_manager.login_view = "views.login"
+        login_manager.login_message = ""
+        login_manager.login_message_category = "error"
+        login_manager.init_app(app)
 
-        # @login_manager.user_loader
-        # def load_user(id):
-        #     type = session.get('type')
-        #     if type is not None:
-        #         user = labs_login.query.filter_by(id = id).first()
-        #     else:
-        #         user = None
-        #     return user
+        @login_manager.user_loader
+        def load_user(id):
+            type = session.get('type')
+            if type is not None:
+                user = user_login.query.filter_by(id = id).first()
+            else:
+                user = None
+            return user
 
 
         @app.before_request
