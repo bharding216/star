@@ -1,6 +1,7 @@
 from flask import Flask, session, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
+from flask import g
 from flask_session import Session
 from flask_mail import Mail
 import os
@@ -25,9 +26,9 @@ def create_app():
     app.config['MYSQL_PASSWORD'] = os.getenv('mysql_password')
     app.config['MYSQL_DB'] = os.getenv('mysql_db')
     app.config['SECRET_KEY'] = os.getenv('secret_key')
-    # app.config['SESSION_TYPE'] = 'filesystem'
-    # app.config['SESSION_COOKIE_SECURE'] = True
-    # Session(app)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_COOKIE_SECURE'] = True
+    Session(app)
 
 
     # Mail config settings:
@@ -79,11 +80,7 @@ def create_app():
 
         @login_manager.user_loader
         def load_user(id):
-            type = session.get('type')
-            if type is not None:
-                user = user_login.query.filter_by(id = id).first()
-            else:
-                user = None
+            user = user_login.query.filter_by(id = id).first()
             return user
 
 

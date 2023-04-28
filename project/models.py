@@ -1,4 +1,3 @@
-
 from . import db
 from sqlalchemy.dialects.mysql import BLOB
 from flask_login import UserMixin
@@ -49,3 +48,10 @@ class supplier_info(db.Model):
     state = db.Column(db.String(25))
     commodity_code = db.Column(db.String(45))
     business_classification = db.Column(db.String(45))
+
+class project_meta(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500))
+    uploaded_by_user_id = db.Column(db.Integer)
+    date_time_stamp = db.Column(DateTime)
+    filename_uuid = db.Column(db.String(500))

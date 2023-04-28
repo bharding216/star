@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Projects | STAR{% endblock %}
+
+{% block content %}
+
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+    <div class="container my-5">
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                <div class="alert alert-success mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% else %}
+                <div class="alert alert-danger mx-5" role="alert">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+{% endwith %}
+
+<div class="pt-5">
+    <div class="container">
+        <h1 class="text-center">Manage Projects</h1>
+    </div>
+</div>
+
+
+<div class="py-5">
+    <div class="container">
+        <h3 class="mb-5">Create a New Project</h3>
+        <form action="{{ url_for('views.manage_project') }}" method="POST" enctype="multipart/form-data">
+
+            <div class="form-floating mb-4 col-md-8 col-lg-6">
+                <input type="text" class="form-control" id="title" name="title"
+                    placeholder="Project Title">
+                <label for="title">Project Title</label>
+            </div>
+
+            <div class="mb-4 col-md-8 col-lg-6">
+                <input type="file" name="file" class="form-control">
+            </div>
+
+
+            <button type="submit" 
+                class="btn btn-primary"
+                style="width:auto">
+                Submit project
+            </button>
+
+        </form>
+    </div>
+</div>
+
+<div class="py-5">
+
+    <div class="container" style="overflow-x: auto;">
+        <h3 class="mb-5">View Projects</h3>
+
+        <table style="margin: 0 auto">
+            <thead>
+                <tr>
+                    <th class="text-center align-middle" scope="col" style="padding: 0px 20px;">Project ID</th>
+                    <th class="text-center align-middle" scope="col">Project Title</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px;">Date Created</th>
+                    <th class="text-center align-middle" scope="col">Download</th>
+                    <th class="text-center align-middle" scope="col">Delete</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                {% for project in project_list %}
+                    <tr>
+                        <td class="text-center align-middle" style="padding: 0px 20px;">{{ project.id }}</td>
+                        <td class="text-center align-middle">{{ project.title }}</td>
+                        <td class="text-center align-middle">{{ project.date_time_stamp }}</td>
+                        <td class="text-center align-middle">
+                            <form action="{{ url_for('views.download_project') }}" method="POST">
+                                <input type="hidden" name="project_id" value="{{ project.id }}">
+                                <input type="hidden" name="title" value="{{ project.title }}">
+                                <input type="hidden" name="date_time_stamp" value="{{ project.date_time_stamp }}">
+                                <input type="hidden" name="filename_uuid" value="{{ project.filename_uuid }}">
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Download
+                                </button>
+                            </form>
+                        </td>
+
+                        <td class="text-center align-middle">
+                            <form action="{{ url_for('views.delete_project') }}" method="POST">
+                                <input type="hidden" name="project_id" value="{{ project.id }}">
+                                <input type="hidden" name="title" value="{{ project.title }}">
+                                <input type="hidden" name="date_time_stamp" value="{{ project.date_time_stamp }}">
+                                <input type="hidden" name="filename_uuid" value="{{ project.filename_uuid }}">                                
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+{% endblock %}
