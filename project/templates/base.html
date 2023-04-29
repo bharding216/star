@@ -67,39 +67,30 @@
                 <div class="navbar-collapse collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto me-5">
 
-                        {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" aria-current="page" 
-                                href="{{ url_for('views.logout') }}">
-                                Logout
-                            </a>
-                        </li>
+                        {% if not user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" 
+                                    href="{{ url_for('views.login') }}">
+                                    Login
+                                </a>
+                            </li>
 
-                            {% if user.user_type == 'admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" 
+                                    href="{{ url_for('views.registration') }}">
+                                    Supplier Registration
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% if user.is_authenticated and user.user_type == 'admin' %}
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
                                     href="{{ url_for('views.manage_project') }}">
                                     Manage Projects
                                 </a>
                             </li>
-                            {% endif %}
-
-                        {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" aria-current="page" 
-                                href="{{ url_for('views.login') }}">
-                                Login
-                            </a>
-                        </li>
                         {% endif %}
-
-
-                        <li class="nav-item">
-                            <a class="nav-link" aria-current="page" 
-                                href="{{ url_for('views.registration') }}">
-                                Register
-                            </a>
-                        </li>
 
                         <li class="nav-item">
                             <a class="nav-link" aria-current="page" 
@@ -107,6 +98,15 @@
                                 Contact
                             </a>
                         </li>
+
+                        {% if user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" 
+                                    href="{{ url_for('views.logout') }}">
+                                    Logout
+                                </a>
+                            </li>
+                        {% endif %}
 
                     </ul>
 

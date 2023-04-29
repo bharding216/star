@@ -37,6 +37,53 @@
 </div>
 
 
+<div class="pb-5">
+    <div class="container" style="overflow-x: auto;">
+
+        <table style="margin: 0 auto">
+            <thead>
+                <tr>
+                    <th class="text-center align-middle" scope="col" style="padding-left: 30px;">Project ID</th>
+                    <th class="text-center align-middle" scope="col" style="width: 300px; padding: 0px 20px;">Project Title</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Date Created</th>
+                    <th class="text-center align-middle" scope="col" style="padding-right: 30px;">Download</th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                {% for project in project_list %}
+                    <tr>
+                        <td class="text-center align-middle" style="padding-left: 30px;">{{ project.id }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 20px;">{{ project.title }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 20px;">{{ project.date_time_stamp }}</td>
+                        <td class="text-center align-middle" style="padding-right: 40px;">
+                            <form action="{{ url_for('views.download_project') }}" method="POST">
+                                <input type="hidden" name="project_id" value="{{ project.id }}">
+                                <input type="hidden" name="title" value="{{ project.title }}">
+                                <input type="hidden" name="date_time_stamp" value="{{ project.date_time_stamp }}">
+                                <input type="hidden" name="filename_uuid" value="{{ project.filename_uuid }}">
+                                <input type="hidden" name="uploaded_by_user_id" value="{{ project.uploaded_by_user_id }}">
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Download
+                                </button>
+                            </form>
+                        </td>
+
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+
+
+
+<!--
 <div>
     <div class="container pb-5" style="overflow-x: auto;">
         <table id="current_bids_table" style="margin: 0 auto">
@@ -71,7 +118,7 @@
             </tbody>
         </table>
     </div>
-</div>
+</div>-->
 
 
 {% endblock %}

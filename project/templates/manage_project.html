@@ -57,7 +57,6 @@
 </div>
 
 <div class="py-5">
-
     <div class="container" style="overflow-x: auto;">
         <h3 class="mb-5">View Projects</h3>
 
@@ -84,6 +83,7 @@
                                 <input type="hidden" name="title" value="{{ project.title }}">
                                 <input type="hidden" name="date_time_stamp" value="{{ project.date_time_stamp }}">
                                 <input type="hidden" name="filename_uuid" value="{{ project.filename_uuid }}">
+                                <input type="hidden" name="uploaded_by_user_id" value="{{ project.uploaded_by_user_id }}">
                                 <button type="submit" 
                                     class="btn btn-primary"
                                     style="width:auto">
@@ -109,7 +109,6 @@
                 {% endfor %}
             </tbody>
         </table>
-
     </div>
 </div>
 

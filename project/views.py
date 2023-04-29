@@ -102,12 +102,11 @@ def manage_project():
 
 
 @views.route('/download_project', methods = ['GET', 'POST'])
-@login_required
 def download_project():
     date_time_stamp = request.form['date_time_stamp']
     title = request.form['title']
     filename_uuid = request.form['filename_uuid']
-    user_id = current_user.id
+    user_id = request.form['uploaded_by_user_id']
 
     # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -171,10 +170,15 @@ def current_bids():
             .order_by(bids.issue_date.desc()) \
             .all()
       
+    with db.session() as db_session:
+        project_list = db_session.query(project_meta) \
+                        .order_by(project_meta.id.desc()) \
+                        .all()    
     return render_template('current_bids.html',
-                            current_bids = current_bids,
-                            user = current_user
-                            )
+                        current_bids = current_bids,
+                        user = current_user,
+                        project_list = project_list
+                        )
 
 @views.route('/closed_bids', methods=['GET', 'POST'])
 def closed_bids():
@@ -220,29 +224,38 @@ def login():
                            user = current_user
                            )
 
-@views.route('/signup', methods=['GET', 'POST'])
-def signup():
+@views.route('/admin_signup', methods=['GET', 'POST'])
+def admin_signup():
     if request.method == "POST":
         email = request.form['email']
         password1 = request.form['password1']
         password2 = request.form['password2']
+        secret_code = request.form['secret_code']
+
+        if secret_code != os.getenv('secret_admin_code'):
+            flash('That secret code is incorrect. Please contact us if you need assistance.', category='error')
+            return render_template('admin_signup.html',
+                                   email = email,
+                                   user = current_user)            
 
         if password1 != password2:
             flash('Passwords do not match.', category='error')
-            return render_template('signup.html')
+            return render_template('admin_signup.html',
+                                   user = current_user)
 
         else:
             hashed_password = generate_password_hash(password1)
             new_user = user_login(password=hashed_password, 
-                                  email=email
+                                  email=email,
+                                  user_type='admin'
                                   )
             db.session.add(new_user)
             db.session.commit()
-            flash('User successfully added to database.', category='success')
+            flash('Admin account successfully created!', category='success')
             return redirect(url_for('views.index'))
 
     else:
-        return render_template('signup.html',
+        return render_template('admin_signup.html',
                                user = current_user
                                )
 

@@ -27,7 +27,7 @@
 
     <form action="{{ url_for('views.signup') }}" method="POST">
 
-        <h3 class="mb-3">New User Signup</h3>
+        <h3 class="mb-3">Create Admin Account</h3>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="email" class="form-control" id="email" name="email"
@@ -36,18 +36,24 @@
         </div>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
-            <input type="text" class="form-control" name="password1"
+            <input type="password" class="form-control" name="password1"
                 placeholder="Password">
             <label for="password1">Password</label>
         </div>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
-            <input type="text" class="form-control" name="password2"
+            <input type="password" class="form-control" name="password2"
                 placeholder="Confirm Password">
             <label for="password2">Confirm Password</label>
         </div>
 
-        <button type="submit" class="btn btn-primary">Signup</button>
+        <div class="form-floating mb-3 col-md-8 col-lg-6">
+            <input type="password" class="form-control" name="secret_code"
+                placeholder="Secret Code">
+            <label for="secret_code">Secret Code</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Sign up</button>
 
     </form>
 
