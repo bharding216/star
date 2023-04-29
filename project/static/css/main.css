@@ -44,7 +44,7 @@ Mustard: #FFDB58
   }
   
   .navbar-custom {
-    background-color: #FFB67D;
+    background-color: #fffddf;
   }
   
   .nav-link {
@@ -63,7 +63,7 @@ Mustard: #FFDB58
   .btn-primary {
     background-color: #582707;
     border-color: black;
-    color: #FFFDD0;
+    color: white;
   }
   
   .btn-primary:hover {
@@ -79,20 +79,20 @@ Mustard: #FFDB58
   }  
   
   .btn-reversed {
-    background-color: #11296b;
-    border-color: #ffcba4;
-    color: white;
+    background-color: #fffddf;
+    border-color: black;
+    color: black;
   }
   
   .btn-reversed:hover {
-    background-color: #ffcba4;
-    border-color: #11296b;
+    background-color: #FFB67D;
+    border-color: black;
     color:black;
   }
   
   
   .footer {
-    background-color: #FFB67D;
+    background-color: #fffddf;
   }
   
   .hover-link {
