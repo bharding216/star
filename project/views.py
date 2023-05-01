@@ -47,9 +47,9 @@ def manage_project():
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         user_id = current_user.id
         title = request.form['title']
-        # bid_type = request.form['bid_type']
-        # issue_date = request.form['issue_date']
-        # close_date = request.form['close_date']
+        bid_type = request.form['bid_type']
+        issue_date = request.form['issue_date']
+        close_date = request.form['close_date']
         
         # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
