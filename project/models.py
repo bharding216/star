@@ -55,3 +55,4 @@ class project_meta(db.Model):
     uploaded_by_user_id = db.Column(db.Integer)
     date_time_stamp = db.Column(DateTime)
     filename_uuid = db.Column(db.String(500))
+    file_path = db.Column(db.String(500))

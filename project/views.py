@@ -47,6 +47,9 @@ def manage_project():
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         user_id = current_user.id
         title = request.form['title']
+        # bid_type = request.form['bid_type']
+        # issue_date = request.form['issue_date']
+        # close_date = request.form['close_date']
         
         # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -55,6 +58,7 @@ def manage_project():
 
         UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
 
+        # ORIGINAL CODE
         # The purpose of the following if-statements is to check if the 
         # directories already exist. This way, you won't try to create
         # two folders in the same directory with the same name. 
@@ -69,6 +73,10 @@ def manage_project():
         upload_dir = os.path.join(project_dir, date_time_stamp_for_dir)
         os.makedirs(upload_dir, exist_ok=True)
 
+        # Generate a random UUID. This value is based on current time stamp 
+        # and a random 14-bit sequence number. It is used to give a unique name
+        # to each uploaded file. Here, you save the file at that filepath
+        # with that UUID filename.
         filename = str(uuid.uuid4())
         filepath = os.path.join(upload_dir, filename)
         file.save(filepath)
@@ -122,6 +130,15 @@ def download_project():
     return response
 
 
+    # project_id = request.form['project_id']
+    # project_object = project_meta.query.filter_by(id=project_id).first()
+
+    # file_path = project_object.file_path
+    # filename = project_object.filename_uuid
+
+    # response = make_response(send_from_directory(file_path, filename, as_attachment=True, mimetype='application/pdf'))
+    # response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    # return response
 
 
 
@@ -170,10 +187,10 @@ def current_bids():
             .order_by(bids.issue_date.desc()) \
             .all()
       
-    with db.session() as db_session:
         project_list = db_session.query(project_meta) \
                         .order_by(project_meta.id.desc()) \
-                        .all()    
+                        .all() 
+           
     return render_template('current_bids.html',
                         current_bids = current_bids,
                         user = current_user,

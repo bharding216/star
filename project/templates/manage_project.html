@@ -41,10 +41,35 @@
                 <label for="title">Project Title</label>
             </div>
 
-            <div class="mb-4 col-md-8 col-lg-6">
-                <input type="file" name="file" class="form-control">
+            <div class="mb-4">
+                <select name="bid_type" class="form-select" 
+                    style="width:auto" id="bid_type">
+
+                    <option selected disabled="disabled">Choose a bid type</option>
+                    <option value="IFB">Invitation for Bid (IFB)</option>
+                    <option value="RFP">Request for Proposal (RFP)</option>
+                </select>
             </div>
 
+            <div class="row">
+                <div class="col-6 col-md-3 mb-4">
+                    <label for="issue_date" class="form-label">Issue date:</label>
+                    <input type="date" id="issue_date" name="issue_date" class="form-control">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-6 col-md-3 mb-4">
+                    <label for="close_date" class="form-label">Close date:</label>
+                    <input type="date" id="close_date" name="close_date" class="form-control">
+                </div>
+            </div>
+
+
+            <div class="mb-4 col-md-8 col-lg-6">
+                <input type="file" name="file" class="form-control">
+                <label for="file" class="form-label">**PDFs only**</label>
+            </div>
 
             <button type="submit" 
                 class="btn btn-primary"
@@ -93,7 +118,7 @@
                         </td>
 
                         <td class="text-center align-middle">
-                            <form action="{{ url_for('views.delete_project') }}" method="POST">
+                            <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDelete()">
                                 <input type="hidden" name="project_id" value="{{ project.id }}">
                                 <input type="hidden" name="title" value="{{ project.title }}">
                                 <input type="hidden" name="date_time_stamp" value="{{ project.date_time_stamp }}">
@@ -111,5 +136,18 @@
         </table>
     </div>
 </div>
+
+
+<script>
+
+function confirmDelete() {
+    if (confirm("Are you sure you want to delete this record?")) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+</script>
 
 {% endblock %}
