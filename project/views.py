@@ -247,22 +247,25 @@ def manage_project():
 
 @views.route('/download_project', methods = ['GET', 'POST'])
 def download_project():
-    date_time_stamp = request.form['date_time_stamp']
-    title = request.form['title']
+    # date_time_stamp = request.form['date_time_stamp']
+    project_title = request.form['project_title']
+    filename = request.form['filename']
     filename_uuid = request.form['filename_uuid']
     user_id = request.form['uploaded_by_user_id']
 
     # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    title = ''.join(c if c in valid_chars else '_' for c in title)
-    date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+    project_title = ''.join(c if c in valid_chars else '_' for c in project_title)
+    filename = ''.join(c if c in valid_chars else '_' for c in filename)
+
+    # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
 
     UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-    upload_dir = os.path.join(UPLOAD_FOLDER, str(user_id), str(title), str(date_time_stamp_for_dir))
+    upload_dir = os.path.join(UPLOAD_FOLDER, str(user_id), str(project_title), str(filename))
 
     # Force download as a PDF.
     response = make_response(send_from_directory(upload_dir, filename_uuid, as_attachment=True, mimetype='application/pdf'))
-    response.headers["Content-Disposition"] = f"attachment; filename={title}.pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}.pdf"
     return response
 
 
@@ -274,19 +277,21 @@ def download_project():
 @login_required
 def delete_project():
     project_id = request.form['project_id']
-    date_time_stamp = request.form['date_time_stamp']
-    title = request.form['title']
+    # date_time_stamp = request.form['date_time_stamp']
+    project_title = request.form['project_title']
+    filename = request.form['filename']
     filename_uuid = request.form['filename_uuid']
-    user_id = current_user.id
+    user_id = request.form['uploaded_by_user_id']
 
     # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores.
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    title = ''.join(c if c in valid_chars else '_' for c in title)
-    date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+    project_title = ''.join(c if c in valid_chars else '_' for c in project_title)
+    filename = ''.join(c if c in valid_chars else '_' for c in filename)
+    # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
 
     # Delete the folder from the app.
     UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-    dir_to_delete = os.path.join(UPLOAD_FOLDER, str(user_id), str(title))
+    dir_to_delete = os.path.join(UPLOAD_FOLDER, str(user_id), str(project_title), str(filename))
     shutil.rmtree(dir_to_delete)
 
     # Then delete the meta data from the database.
@@ -294,8 +299,12 @@ def delete_project():
         obj = db_session.query(project_meta).get(project_id)
         db_session.delete(obj)
         db_session.commit()
-    
-    flash('File deleted successfully.', 'success')
+
+        bid_to_delete = db_session.query(bids).filter_by(id = obj.bid_id).first()
+        db_session.delete(bid_to_delete)
+        db_session.commit()
+
+    flash('Project deleted successfully.', 'success')
     return redirect(url_for('views.manage_project'))
 
 
