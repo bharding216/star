@@ -120,14 +120,19 @@ def manage_project():
         flash('Project created successfully!', 'success')
         return redirect(url_for('views.manage_project'))
 
+    # Handle GET request:
+    # with db.session() as db_session:
+    #     project_list = db_session.query(project_meta) \
+    #                     .order_by(project_meta.id.desc()) \
+    #                     .all()
     with db.session() as db_session:
-        project_list = db_session.query(project_meta) \
-                        .order_by(project_meta.id.desc()) \
-                        .all()
-        
+        bid_list = db_session.query(project_meta, bids) \
+                              .join(bids) \
+                              .all()
+
     return render_template('manage_project.html',
                            user = current_user,
-                           project_list = project_list
+                           bid_list = bid_list
                            )
 
 
@@ -206,16 +211,10 @@ def delete_project():
 @views.route('/current_bids', methods=['GET', 'POST'])
 def current_bids():
     with db.session() as db_session:
-        # current_bids = db_session.query(bids) \
-        #     .filter(bids.status == 'open') \
-        #     .order_by(bids.issue_date.desc()) \
-        #     .all()
-      
-        # project_list = db_session.query(project_meta) \
-        #                 .order_by(project_meta.id.desc()) \
-        #                 .all() 
-
-        open_bids = db_session.query(project_meta, bids).join(bids).filter(bids.status=='open').all()
+        open_bids = db_session.query(project_meta, bids) \
+                              .join(bids) \
+                              .filter(bids.status=='open') \
+                              .all()
 
     return render_template('current_bids.html',
                         open_bids = open_bids,
