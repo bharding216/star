@@ -72,14 +72,14 @@ def registration_personal():
 @views.route('/registration_location', methods=['GET', 'POST'])
 def registration_location():
     if request.method == "POST":
-        street_address_1 = request.form['street_address_1']
-        street_address_2 = request.form['street_address_2']
+        address_1 = request.form['address_1']
+        address_2 = request.form['address_2']
         city = request.form['city']
         state = request.form['state']
-        zip_code = request.form['zip']
+        zip_code = request.form['zip_code']
 
-        session['street_address_1'] = street_address_1
-        session['street_address_2'] = street_address_2
+        session['address_1'] = address_1
+        session['address_2'] = address_2
         session['city'] = city
         session['state'] = state
         session['zip_code'] = zip_code
@@ -102,7 +102,7 @@ def registration_business():
         session['ein'] = ein
         session['legal_structure'] = legal_structure
 
-        hashed_password = generate_password_hash(session['password1'])
+        hashed_password = generate_password_hash(session['password'])
 
         with db.session() as db_session:
             new_supplier_info_record = supplier_info(first_name = session['first_name'],
@@ -110,13 +110,13 @@ def registration_business():
                                                      company_name = session['company_name'],
                                                      email = session['email'],
                                                      phone = session['phone'],
-                                                     street_address_1 = session['street_address_1'],
-                                                     street_address_2 = session['street_address_2'],
+                                                     address_1 = session['address_1'],
+                                                     address_2 = session['address_2'],
                                                      city = session['city'],
                                                      state = session['state'],
                                                      zip_code = session['zip_code'],
                                                      duns = session['duns'],
-                                                     ein = session['ein'],
+                                                     tax_id = session['ein'],
                                                      legal_type = session['legal_structure'],
                                                      )
             db_session.add(new_supplier_info_record)
@@ -133,7 +133,7 @@ def registration_business():
 
         flash('New supplier profile created! Please login using your email and password to \
               apply for open bids.', category='success')
-        return redirect('views.index')
+        return redirect(url_for('views.index'))
 
 
 
