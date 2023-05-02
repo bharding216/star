@@ -81,11 +81,11 @@ def create_app():
         @login_manager.user_loader
         def load_user(id):
             user_type = session.get('user_type')
-            if type == 'supplier':
+            if user_type == 'supplier':
                 user = supplier_login.query.filter_by(id = id).first()
-            elif type == 'admin':
+            elif user_type == 'admin':
                 user = admin_login.query.filter_by(id = id).first()
-            elif type == 'gov':
+            elif user_type == 'gov':
                 user = gov_login.query.filter_by(id = id).first()
             else:
                 user = None

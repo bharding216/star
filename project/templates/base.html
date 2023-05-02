@@ -93,7 +93,7 @@
                             </li>
                         {% endif %}
 
-                        {% if user.is_authenticated and user.user_type == 'admin' %}
+                        {% if user.is_authenticated and session['user_type'] == 'admin' %}
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
                                     href="{{ url_for('views.manage_project') }}">
