@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
-from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login, \
-                            gov_login
+from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login
 from datetime import datetime
 import datetime
 # from flask_mail import Message
@@ -60,7 +59,7 @@ def registration_personal():
             session['company_name'] = company_name
             session['email'] = email
             session['phone'] = phone
-            session['password'] = password1
+            session['password'] = generate_password_hash(password1)
 
         return redirect(url_for('views.registration_location'))
 
@@ -102,8 +101,6 @@ def registration_business():
         session['ein'] = ein
         session['legal_structure'] = legal_structure
 
-        hashed_password = generate_password_hash(session['password'])
-
         with db.session() as db_session:
             new_supplier_info_record = supplier_info(first_name = session['first_name'],
                                                      last_name = session['last_name'],
@@ -126,7 +123,7 @@ def registration_business():
 
             new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
                                                        email = session['email'],
-                                                       password = hashed_password
+                                                       password = session['password']
                                                        )
             db_session.add(new_supplier_login_record)
             db_session.commit()
@@ -361,6 +358,7 @@ def login_supplier():
         password = request.form["password"]
 
         user = supplier_login.query.filter_by(email = email).first()
+
         if user:
             if check_password_hash(user.password, password):
                 login_user(user, remember = True)
@@ -400,31 +398,6 @@ def login_admin():
             flash('That email is not associated with an account.', category = 'error')
 
     return render_template('login_admin.html',
-                           user = current_user
-                           )
-
-
-@views.route('/login_gov', methods=['GET', 'POST'])
-def login_gov():
-    if request.method == 'POST':
-        email = request.form["email"]
-        password = request.form["password"]
-
-        user = gov_login.query.filter_by(email = email).first()
-        if user:
-            if check_password_hash(user.password, password):
-                login_user(user, remember = True)
-                session['user_type'] = 'gov'
-                session.permanent = True
-                flash('Login successful!', category = 'success')
-                return redirect(url_for('views.index'))
-            else:
-                flash('Incorrect password. Please try again.', category = 'error')
-                return redirect(url_for('views.login_gov', email = email))
-        else:
-            flash('That email is not associated with an account.', category = 'error')
-
-    return render_template('login_gov.html',
                            user = current_user
                            )
 

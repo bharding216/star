@@ -34,11 +34,6 @@ class supplier_login(db.Model, UserMixin):
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_info.id'))
     supplier = db.relationship('supplier_info', backref='supplier_login')
 
-class gov_login(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    password = db.Column(db.String(500))
-    email = db.Column(db.String(320))
-
 class admin_login(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     password = db.Column(db.String(500))
