@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, flash, url_for,
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
 from project.models import bids, bid_contact, user_login, supplier_info, project_meta
+from datetime import datetime
 import datetime
 # from flask_mail import Message
 from . import db, mail
@@ -43,18 +44,21 @@ def registration():
 def manage_project():
     if request.method == 'POST':
         file = request.files['file']
+        filename = file.filename
         now = datetime.datetime.now()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         user_id = current_user.id
-        title = request.form['title']
+        project_title = request.form['project_title']
         bid_type = request.form['bid_type']
+        organization = request.form['organization']
         issue_date = request.form['issue_date']
         close_date = request.form['close_date']
+        notes = request.form['notes']
         
         # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
         valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-        title = ''.join(c if c in valid_chars else '_' for c in title)
-        date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+        fixed_filename = ''.join(c if c in valid_chars else '_' for c in filename)
+        # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
 
         UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
 
@@ -66,26 +70,46 @@ def manage_project():
         if not os.path.exists(user_dir):
             os.makedirs(user_dir)
 
-        project_dir = os.path.join(user_dir, str(title))
+        project_dir = os.path.join(user_dir, str(project_title))
         if not os.path.exists(project_dir):
             os.makedirs(project_dir)
 
-        upload_dir = os.path.join(project_dir, date_time_stamp_for_dir)
+        upload_dir = os.path.join(project_dir, str(fixed_filename))
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+
         os.makedirs(upload_dir, exist_ok=True)
 
         # Generate a random UUID. This value is based on current time stamp 
         # and a random 14-bit sequence number. It is used to give a unique name
         # to each uploaded file. Here, you save the file at that filepath
         # with that UUID filename.
-        filename = str(uuid.uuid4())
-        filepath = os.path.join(upload_dir, filename)
+        file_identifier = str(uuid.uuid4())
+        filepath = os.path.join(upload_dir, file_identifier)
         file.save(filepath)
 
+        new_project_record = {
+            'title': project_title,
+            'type': bid_type,
+            'organization': organization,
+            'issue_date': issue_date,
+            'close_date': close_date,
+            'notes': notes,
+            'status': 'open'
+        }
+
+        with db.session() as db_session:
+            new_project = bids(**new_project_record)
+            db_session.add(new_project)
+            db_session.commit()
+            new_project_id = new_project.id
+
         new_metadata_record = {
-            'title': title,
+            'title': fixed_filename,
             'uploaded_by_user_id': user_id,
             'date_time_stamp': date_time_stamp,
-            'filename_uuid': filename
+            'filename_uuid': file_identifier,
+            'bid_id': new_project_id
         }
 
         with db.session() as db_session:
@@ -182,20 +206,25 @@ def delete_project():
 @views.route('/current_bids', methods=['GET', 'POST'])
 def current_bids():
     with db.session() as db_session:
-        current_bids = db_session.query(bids) \
-            .filter(bids.status == 'open') \
-            .order_by(bids.issue_date.desc()) \
-            .all()
+        # current_bids = db_session.query(bids) \
+        #     .filter(bids.status == 'open') \
+        #     .order_by(bids.issue_date.desc()) \
+        #     .all()
       
-        project_list = db_session.query(project_meta) \
-                        .order_by(project_meta.id.desc()) \
-                        .all() 
-           
+        # project_list = db_session.query(project_meta) \
+        #                 .order_by(project_meta.id.desc()) \
+        #                 .all() 
+
+        open_bids = db_session.query(project_meta, bids).join(bids).filter(bids.status=='open').all()
+
     return render_template('current_bids.html',
-                        current_bids = current_bids,
-                        user = current_user,
-                        project_list = project_list
+                        open_bids = open_bids,
+                        user = current_user
                         )
+
+
+
+
 
 @views.route('/closed_bids', methods=['GET', 'POST'])
 def closed_bids():

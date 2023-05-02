@@ -3,7 +3,7 @@ from sqlalchemy.dialects.mysql import BLOB
 from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import Flask
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, Date
 
 class bids(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,8 +11,8 @@ class bids(db.Model):
     title = db.Column(db.String(100))
     type = db.Column(db.String(45))
     organization = db.Column(db.String(100))
-    issue_date = db.Column(DateTime)
-    close_date = db.Column(DateTime)
+    issue_date = db.Column(Date)
+    close_date = db.Column(Date)
     notes = db.Column(db.String(16000000))
     status = db.Column(db.String(45))
 

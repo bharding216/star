@@ -36,9 +36,9 @@
         <form action="{{ url_for('views.manage_project') }}" method="POST" enctype="multipart/form-data">
 
             <div class="form-floating mb-4 col-md-8 col-lg-6">
-                <input type="text" class="form-control" id="title" name="title"
+                <input type="text" class="form-control" id="project_title" name="project_title"
                     placeholder="Project Title">
-                <label for="title">Project Title</label>
+                <label for="project_title">Project Title</label>
             </div>
 
             <div class="mb-4">
@@ -49,6 +49,12 @@
                     <option value="IFB">Invitation for Bid (IFB)</option>
                     <option value="RFP">Request for Proposal (RFP)</option>
                 </select>
+            </div>
+
+            <div class="form-floating mb-4 col-md-8 col-lg-6">
+                <input type="text" class="form-control" id="organization" name="organization"
+                    placeholder="Organization">
+                <label for="organization">Organization</label>
             </div>
 
             <div class="row">
@@ -65,6 +71,11 @@
                 </div>
             </div>
 
+            <div class="form-floating mb-3 col-md-12 col-lg-8">
+                <textarea class="form-control" id="notes" name="notes"
+                    placeholder="Notes" style="height: 100px;"></textarea>
+                <label for="notes">Notes</label>
+            </div>    
 
             <div class="mb-4 col-md-8 col-lg-6">
                 <input type="file" name="file" class="form-control">
