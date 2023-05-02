@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
-from project.models import bids, bid_contact, user_login, supplier_info, project_meta
+from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login, \
+                            gov_login
 from datetime import datetime
 import datetime
 # from flask_mail import Message
@@ -30,11 +31,121 @@ def contact():
                            )
 
 
-@views.route('/registration', methods=['GET', 'POST'])
-def registration():
-    return render_template('registration.html',
+
+
+@views.route('/registration_personal', methods=['GET', 'POST'])
+def registration_personal():
+    if request.method == 'POST':
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        company_name = request.form['company_name']
+        email = request.form['email']
+        phone = request.form['phone']
+        password1 = request.form['password1']
+        password2 = request.form['password2']
+
+        if password1 != password2:
+            flash('Passwords do not match. Please try again.', category='error')
+            return render_template('registration_personal.html',
+                                   user = current_user,
+                                   first_name = first_name,
+                                   last_name = last_name,
+                                   company_name = company_name,
+                                   email = email,
+                                   phone = phone
+                                   )
+        else:
+            session['first_name'] = first_name
+            session['last_name'] = last_name
+            session['company_name'] = company_name
+            session['email'] = email
+            session['phone'] = phone
+            session['password'] = password1
+
+        return redirect(url_for('views.registration_location'))
+
+    return render_template('registration_personal.html',
                            user = current_user
                            )
+
+
+@views.route('/registration_location', methods=['GET', 'POST'])
+def registration_location():
+    if request.method == "POST":
+        street_address_1 = request.form['street_address_1']
+        street_address_2 = request.form['street_address_2']
+        city = request.form['city']
+        state = request.form['state']
+        zip_code = request.form['zip']
+
+        session['street_address_1'] = street_address_1
+        session['street_address_2'] = street_address_2
+        session['city'] = city
+        session['state'] = state
+        session['zip_code'] = zip_code
+
+        return redirect(url_for('views.registration_business'))
+
+    return render_template('registration_location.html',
+                           user = current_user
+                           )
+
+
+@views.route('/registration_business', methods=['GET', 'POST'])
+def registration_business():
+    if request.method == "POST":
+        duns = request.form['duns']
+        ein = request.form['ein']
+        legal_structure = request.form['legal_structure']
+
+        session['duns'] = duns
+        session['ein'] = ein
+        session['legal_structure'] = legal_structure
+
+        hashed_password = generate_password_hash(session['password1'])
+
+        with db.session() as db_session:
+            new_supplier_info_record = supplier_info(first_name = session['first_name'],
+                                                     last_name = session['last_name'],
+                                                     company_name = session['company_name'],
+                                                     email = session['email'],
+                                                     phone = session['phone'],
+                                                     street_address_1 = session['street_address_1'],
+                                                     street_address_2 = session['street_address_2'],
+                                                     city = session['city'],
+                                                     state = session['state'],
+                                                     zip_code = session['zip_code'],
+                                                     duns = session['duns'],
+                                                     ein = session['ein'],
+                                                     legal_type = session['legal_structure'],
+                                                     )
+            db_session.add(new_supplier_info_record)
+            db_session.commit()
+
+            new_supplier_info_record_id = new_supplier_info_record.id
+
+            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
+                                                       email = session['email'],
+                                                       password = hashed_password
+                                                       )
+            db_session.add(new_supplier_login_record)
+            db_session.commit()
+
+        flash('New supplier profile created! Please login using your email and password to \
+              apply for open bids.', category='success')
+        return redirect('views.index')
+
+
+
+    return render_template('registration_business.html',
+                           user = current_user
+                           )
+
+
+
+
+
+
 
 
 
@@ -121,10 +232,6 @@ def manage_project():
         return redirect(url_for('views.manage_project'))
 
     # Handle GET request:
-    # with db.session() as db_session:
-    #     project_list = db_session.query(project_meta) \
-    #                     .order_by(project_meta.id.desc()) \
-    #                     .all()
     with db.session() as db_session:
         bid_list = db_session.query(project_meta, bids) \
                               .join(bids) \
@@ -158,16 +265,6 @@ def download_project():
     response.headers["Content-Disposition"] = f"attachment; filename={title}.pdf"
     return response
 
-
-    # project_id = request.form['project_id']
-    # project_object = project_meta.query.filter_by(id=project_id).first()
-
-    # file_path = project_object.file_path
-    # filename = project_object.filename_uuid
-
-    # response = make_response(send_from_directory(file_path, filename, as_attachment=True, mimetype='application/pdf'))
-    # response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    # return response
 
 
 
@@ -243,31 +340,86 @@ def bid_details():
                            user = current_user
                            )
 
-@views.route('/login', methods=['GET', 'POST'])
-def login():
+
+
+
+
+
+@views.route('/login_supplier', methods=['GET', 'POST'])
+def login_supplier():
     if request.method == 'POST':
         email = request.form["email"]
         password = request.form["password"]
 
-        user = user_login.query.filter_by(email = email).first()
+        user = supplier_login.query.filter_by(email = email).first()
         if user:
             if check_password_hash(user.password, password):
                 login_user(user, remember = True)
+                session['user_type'] = 'supplier'
                 session.permanent = True
                 flash('Login successful!', category = 'success')
                 return redirect(url_for('views.index'))
             else:
                 flash('Incorrect password. Please try again.', category = 'error')
-                return render_template('login.html',
-                                        email = email,
-                                        user = current_user
-                                        )
+                return redirect(url_for('views.login_supplier', email = email))
         else:
             flash('That email is not associated with an account.', category = 'error')
 
-    return render_template('login.html',
+    return render_template('login_supplier.html',
                            user = current_user
                            )
+
+
+@views.route('/login_admin', methods=['GET', 'POST'])
+def login_admin():
+    if request.method == 'POST':
+        email = request.form["email"]
+        password = request.form["password"]
+
+        user = admin_login.query.filter_by(email = email).first()
+        if user:
+            if check_password_hash(user.password, password):
+                login_user(user, remember = True)
+                session['user_type'] = 'admin'
+                session.permanent = True
+                flash('Login successful!', category = 'success')
+                return redirect(url_for('views.index'))
+            else:
+                flash('Incorrect password. Please try again.', category = 'error')
+                return redirect(url_for('views.login_admin', email = email))
+        else:
+            flash('That email is not associated with an account.', category = 'error')
+
+    return render_template('login_admin.html',
+                           user = current_user
+                           )
+
+
+@views.route('/login_gov', methods=['GET', 'POST'])
+def login_gov():
+    if request.method == 'POST':
+        email = request.form["email"]
+        password = request.form["password"]
+
+        user = gov_login.query.filter_by(email = email).first()
+        if user:
+            if check_password_hash(user.password, password):
+                login_user(user, remember = True)
+                session['user_type'] = 'gov'
+                session.permanent = True
+                flash('Login successful!', category = 'success')
+                return redirect(url_for('views.index'))
+            else:
+                flash('Incorrect password. Please try again.', category = 'error')
+                return redirect(url_for('views.login_gov', email = email))
+        else:
+            flash('That email is not associated with an account.', category = 'error')
+
+    return render_template('login_gov.html',
+                           user = current_user
+                           )
+
+
 
 @views.route('/admin_signup', methods=['GET', 'POST'])
 def admin_signup():
@@ -284,17 +436,16 @@ def admin_signup():
                                    user = current_user)            
 
         if password1 != password2:
-            flash('Passwords do not match.', category='error')
+            flash('Passwords do not match. Please try again.', category='error')
             return render_template('admin_signup.html',
                                    user = current_user)
 
         else:
             hashed_password = generate_password_hash(password1)
-            new_user = user_login(password=hashed_password, 
-                                  email=email,
-                                  user_type='admin'
-                                  )
-            db.session.add(new_user)
+            new_admin = admin_login(password=hashed_password, 
+                                    email=email
+                                    )
+            db.session.add(new_admin)
             db.session.commit()
             flash('Admin account successfully created!', category='success')
             return redirect(url_for('views.index'))

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Supplier Registration | South Texas Agency for Resources{% endblock %}
+
+{% block content %}
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+        <div class="container my-5">
+            {% for category, message in messages %}
+                {% if category == 'success' %}
+                    <div class="alert alert-success mx-5" role="alert">
+                        {{ message }}
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger mx-5" role="alert">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
+<div class="container my-5">
+    <h1>Supplier Registration Form</h1>
+    <p>Page 3/3: Company legal information</p>
+
+    <br>
+
+    <form action="{{ url_for('views.registration_business') }}" method="POST">
+
+        <div class="form-floating mb-3 col-md-8 col-lg-6">
+            <input type="text" class="form-control" name="duns" id="duns"
+                placeholder="DUNS">
+            <label for="duns">DUNS</label>
+            <a href="https://www.dnb.com/duns-number/lookup.html"
+                style="color: rgb(31, 44, 229);"
+                target="_blank">
+                DUNS Lookup
+            </a>
+        </div>
+
+        <div class="form-floating mb-3 col-md-8 col-lg-6">
+            <input type="text" class="form-control" id="ein" name="ein"
+                placeholder="EIN">
+            <label for="ein">EIN</label>
+        </div>
+
+        <div class="mb-3">
+            <select name="legal_structure" class="form-select" 
+                style="width:auto" id="legal_structure">
+
+                <option selected disabled="disabled">Choose a business structure</option>
+                <option value="sole">Sole Proprietorship</option>
+                <option value="partner">Partnership</option>
+                <option value="corp">Corporation</option>
+                <option value="s-corp">S Corporation</option>
+                <option value="LLC">Limited Liability Company (LLC)</option>
+
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  
+</div>
+
+
+
+
+{% endblock %}

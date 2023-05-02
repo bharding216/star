@@ -64,7 +64,7 @@ def create_app():
         # from .blog import blog
         # from .contact import contact_bp
         # from .auth import auth_bp
-        from .models import user_login
+        from .models import supplier_login, admin_login, gov_login
 
         app.register_blueprint(views, url_prefix="/")
         # app.register_blueprint(blog, url_prefix="/blog")
@@ -80,7 +80,15 @@ def create_app():
 
         @login_manager.user_loader
         def load_user(id):
-            user = user_login.query.filter_by(id = id).first()
+            user_type = session.get('user_type')
+            if type == 'supplier':
+                user = supplier_login.query.filter_by(id = id).first()
+            elif type == 'admin':
+                user = admin_login.query.filter_by(id = id).first()
+            elif type == 'gov':
+                user = gov_login.query.filter_by(id = id).first()
+            else:
+                user = None
             return user
 
 

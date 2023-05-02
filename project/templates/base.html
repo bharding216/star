@@ -68,16 +68,26 @@
                     <ul class="navbar-nav ms-auto me-5">
 
                         {% if not user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link" aria-current="page" 
-                                    href="{{ url_for('views.login') }}">
-                                    Login
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" 
+                                href="#"
+                                id="navbarDropdownMenuLink"
+                                role="button"
+                                data-toggle="dropdown" 
+                                aria-haspopup="true" aria-expanded="false">
+                                Login
                                 </a>
+
+                                <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                                    <a class="dropdown-item" href="{{ url_for('views.login_supplier') }}">Suppliers</a>
+                                    <a class="dropdown-item" href="{{ url_for('views.login_gov') }}">Gov Personnel</a>
+                                    <a class="dropdown-item" href="{{ url_for('views.login_admin') }}">Admins</a>
+                                </div>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
-                                    href="{{ url_for('views.registration') }}">
+                                    href="{{ url_for('views.registration_personal') }}">
                                     Supplier Registration
                                 </a>
                             </li>
@@ -144,11 +154,15 @@
                     <h5 class="pb-2" style="color: black;">Quick Links</h5>
 
                     <p class="footer-links">                            
-                        <a href="{{ url_for('views.login') }}" class="nav-link">Login</a>
+                        <a href="{{ url_for('views.login_supplier') }}" class="nav-link">Supplier Login</a>
+                    </p>
+
+                    <p class="footer-links">                            
+                        <a href="{{ url_for('views.login_gov') }}" class="nav-link">Gov Personnel Login</a>
                     </p>
 
                     <p class="footer-links">
-                        <a class="nav-link" href="{{ url_for('views.registration') }}">Register</a>
+                        <a class="nav-link" href="{{ url_for('views.registration_personal') }}">Supplier Registration</a>
                     </p>
 
                     <p class="footer-links">

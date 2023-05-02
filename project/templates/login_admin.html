@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}South Texas Agency for Resources | Login{% endblock %}
+{% block title %}South Texas Agency for Resources | Admin Login{% endblock %}
 
 {% block content %}
 
@@ -25,9 +25,9 @@
 
 <div class="container my-5">
 
-    <form action="{{ url_for('views.login') }}" method="POST">
+    <form action="{{ url_for('views.login_admin') }}" method="POST">
 
-        <h3 class="mb-3">User Login</h3>
+        <h3 class="mb-3">Admin Login</h3>
 
         <div class="row">
             <div class="col-md-6 col-lg-4">
@@ -53,19 +53,6 @@
 
 </div>
 
-
-<!--REQUEST TEST-->
-<div class="container my-5">
-
-        <h3 class="my-3">Need to create an account?</h3>
-
-        <a class="btn btn-primary mx-auto" 
-        href="{{ url_for('views.registration') }}" role="button"
-        style="width: auto">
-        Let's get started
-        </a>
-
-</div>
 
 
 {% endblock %}

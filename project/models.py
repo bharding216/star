@@ -25,29 +25,40 @@ class bid_contact(db.Model):
     city = db.Column(db.String(100))
     state = db.Column(db.String(25))
     phone = db.Column(db.String(20))
-    email = db.Column(db.String(45))
+    email = db.Column(db.String(320))
 
-class user_login(db.Model, UserMixin):
+class supplier_login(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     password = db.Column(db.String(500))
-    email = db.Column(db.String(100))
-    user_type = db.Column(db.String(45))
+    email = db.Column(db.String(320))
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_info.id'))
+    supplier = db.relationship('supplier_info', backref='supplier_login')
+
+class gov_login(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    password = db.Column(db.String(500))
+    email = db.Column(db.String(320))
+
+class admin_login(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    password = db.Column(db.String(500))
+    email = db.Column(db.String(320))
 
 class supplier_info(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(45))
     last_name = db.Column(db.String(45))
     company_name = db.Column(db.String(256))
+    email = db.Column(db.String(320))
     phone = db.Column(db.String(20))
     duns = db.Column(db.String(12))
-    organization_type = db.Column(db.String(45))
+    legal_type = db.Column(db.String(45))
     tax_id = db.Column(db.String(12))
     address_1 = db.Column(db.String(100))
     address_2 = db.Column(db.String(100))
     city = db.Column(db.String(100))
     state = db.Column(db.String(25))
-    commodity_code = db.Column(db.String(45))
-    business_classification = db.Column(db.String(45))
+    zip_code = db.Column(db.String(25))
 
 class project_meta(db.Model):
     id = db.Column(db.Integer, primary_key=True)
