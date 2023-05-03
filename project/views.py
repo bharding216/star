@@ -295,31 +295,24 @@ def download_project():
 
         s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
-        # Configure S3 credentials
         s3 = boto3.client('s3', 
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-        # Set the name of your S3 bucket
         S3_BUCKET = 'star-uploads-bucket'
 
-        # Generate a temporary URL for the file
         url = s3.generate_presigned_url(
             ClientMethod='get_object',
             Params={
                 'Bucket': S3_BUCKET,
                 'Key': s3_filename
             },
-            ExpiresIn=3600  # URL expires in 1 hour
+            ExpiresIn=3600
         )
 
-        # Download the file from S3
         response = requests.get(url)
-
-        # Set the file name for download
         download_filename = secure_filename(filename)
 
-        # Return the file as an attachment
         response = make_response(BytesIO(response.content))
         response.headers.set('Content-Disposition', 'attachment', filename=download_filename)
         return response
