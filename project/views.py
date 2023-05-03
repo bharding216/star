@@ -8,15 +8,16 @@ import datetime
 from . import db, mail
 # from helpers import generate_sitemap
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 # from itsdangerous.exc import BadSignature
 import os
 import uuid
 import string
 import shutil
-
-# a new update
-
-
+import boto3 
+from botocore.exceptions import NoCredentialsError
+import requests
+from io import BytesIO
 
 views = Blueprint('views', __name__)
 
@@ -29,6 +30,14 @@ def index():
 
 @views.route('/contact', methods=['GET', 'POST'])
 def contact():
+    if request.method == 'POST':
+        # Handle the form data
+        #
+        #
+
+        flash("Thanks for reaching out! We'll get back to you within 1 business day.", category='success')
+        return redirect(url_for('views.index'))
+
     return render_template('contact.html',
                            user = current_user
                            )
@@ -148,6 +157,59 @@ def registration_business():
 
 
 
+@views.route('/test_upload', methods=['GET', 'POST'])
+def test_upload():
+    if request.method == 'POST':
+        # Configure S3 credentials
+        s3 = boto3.client('s3', 
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
+
+        file = request.files['file']
+        filename = file.filename
+        s3.upload_fileobj(file, S3_BUCKET, filename)
+
+        return 'File uploaded successfully'
+
+    return '''
+        <!doctype html>
+        <h1>Upload a file</h1>
+        <form method="post" enctype="multipart/form-data">
+          <input type="file" name="file">
+          <input type="submit" value="Upload">
+        </form>
+    '''
+
+
+
+
+@views.route('/test_download/<string:filename>')
+def test_download(filename):
+    # Configure S3 credentials
+    s3 = boto3.client('s3', 
+                    aws_access_key_id=os.getenv('s3_access_key_id'),
+                    aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+    # Set the name of your S3 bucket
+    S3_BUCKET = 'star-uploads-bucket'
+
+    # Generate a temporary URL for the file
+    url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': S3_BUCKET,
+            'Key': filename
+        },
+        ExpiresIn=3600  # URL expires in 1 hour
+    )
+
+    return f'<a href="{url}">Click here to download {filename}</a>'
+
+
+
 
 
 
@@ -159,6 +221,7 @@ def manage_project():
         filename = file.filename
         now = datetime.datetime.now()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+        secure_date_time_stamp = secure_filename(date_time_stamp)
         user_id = current_user.id
         project_title = request.form['project_title']
         bid_type = request.form['bid_type']
@@ -167,38 +230,16 @@ def manage_project():
         close_date = request.form['close_date']
         notes = request.form['notes']
         
-        # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
-        valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-        fixed_filename = ''.join(c if c in valid_chars else '_' for c in filename)
-        # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+        # Configure S3 credentials
+        s3 = boto3.client('s3', 
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
 
-        UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-
-        # ORIGINAL CODE
-        # The purpose of the following if-statements is to check if the 
-        # directories already exist. This way, you won't try to create
-        # two folders in the same directory with the same name. 
-        user_dir = os.path.join(UPLOAD_FOLDER, str(user_id))
-        if not os.path.exists(user_dir):
-            os.makedirs(user_dir)
-
-        project_dir = os.path.join(user_dir, str(project_title))
-        if not os.path.exists(project_dir):
-            os.makedirs(project_dir)
-
-        upload_dir = os.path.join(project_dir, str(fixed_filename))
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
-
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # Generate a random UUID. This value is based on current time stamp 
-        # and a random 14-bit sequence number. It is used to give a unique name
-        # to each uploaded file. Here, you save the file at that filepath
-        # with that UUID filename.
-        file_identifier = str(uuid.uuid4())
-        filepath = os.path.join(upload_dir, file_identifier)
-        file.save(filepath)
+        s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+        s3.upload_fileobj(file, S3_BUCKET, s3_filename)
 
         new_project_record = {
             'title': project_title,
@@ -217,10 +258,9 @@ def manage_project():
             new_project_id = new_project.id
 
         new_metadata_record = {
-            'title': fixed_filename,
+            'title': filename,
             'uploaded_by_user_id': user_id,
             'date_time_stamp': date_time_stamp,
-            'filename_uuid': file_identifier,
             'bid_id': new_project_id
         }
 
@@ -248,26 +288,49 @@ def manage_project():
 
 @views.route('/download_project', methods = ['GET', 'POST'])
 def download_project():
-    # date_time_stamp = request.form['date_time_stamp']
-    project_title = request.form['project_title']
-    filename = request.form['filename']
-    filename_uuid = request.form['filename_uuid']
-    user_id = request.form['uploaded_by_user_id']
+    if request.method == 'POST':
+        filename = request.form['filename']
+        date_time_stamp = request.form['date_time_stamp']
+        secure_date_time_stamp = secure_filename(date_time_stamp)
 
-    # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores
-    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    project_title = ''.join(c if c in valid_chars else '_' for c in project_title)
-    filename = ''.join(c if c in valid_chars else '_' for c in filename)
+        s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
-    # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+        # Configure S3 credentials
+        s3 = boto3.client('s3', 
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-    upload_dir = os.path.join(UPLOAD_FOLDER, str(user_id), str(project_title), str(filename))
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
 
-    # Force download as a PDF.
-    response = make_response(send_from_directory(upload_dir, filename_uuid, as_attachment=True, mimetype='application/pdf'))
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}.pdf"
-    return response
+        # Generate a temporary URL for the file
+        url = s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': s3_filename
+            },
+            ExpiresIn=3600  # URL expires in 1 hour
+        )
+
+        # Download the file from S3
+        response = requests.get(url)
+
+        # Set the file name for download
+        download_filename = secure_filename(filename)
+
+        # Return the file as an attachment
+        response = make_response(BytesIO(response.content))
+        response.headers.set('Content-Disposition', 'attachment', filename=download_filename)
+        return response
+
+
+
+
+
+
+
+
 
 
 
@@ -278,22 +341,22 @@ def download_project():
 @login_required
 def delete_project():
     project_id = request.form['project_id']
-    # date_time_stamp = request.form['date_time_stamp']
-    project_title = request.form['project_title']
     filename = request.form['filename']
-    filename_uuid = request.form['filename_uuid']
-    user_id = request.form['uploaded_by_user_id']
+    date_time_stamp = request.form['date_time_stamp']
 
-    # Replace any invalid characters in the title and date_time_stamp_for_dir strings with underscores.
-    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    project_title = ''.join(c if c in valid_chars else '_' for c in project_title)
-    filename = ''.join(c if c in valid_chars else '_' for c in filename)
-    # date_time_stamp_for_dir = ''.join(c if c in valid_chars else '_' for c in date_time_stamp)
+    secure_date_time_stamp = secure_filename(date_time_stamp)
 
-    # Delete the folder from the app.
-    UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads')
-    dir_to_delete = os.path.join(UPLOAD_FOLDER, str(user_id), str(project_title), str(filename))
-    shutil.rmtree(dir_to_delete)
+    s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
+
+    # Configure S3 credentials
+    s3 = boto3.client('s3', 
+                    aws_access_key_id=os.getenv('s3_access_key_id'),
+                    aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+    # Set the name of your S3 bucket
+    S3_BUCKET = 'star-uploads-bucket'
+
+    s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
 
     # Then delete the meta data from the database.
     with db.session() as db_session:

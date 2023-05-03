@@ -28,6 +28,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('secret_key')
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_NAME'] = 'my_session_cookie'
     Session(app)
 
 
@@ -52,7 +53,6 @@ def create_app():
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True,  # enable connection pool pre-ping
     }
-
 
     db.init_app(app)
     mail.init_app(app)
