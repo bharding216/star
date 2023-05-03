@@ -28,7 +28,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('secret_key')
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_NAME'] = 'my_session_cookie'
+    #app.config['SESSION_COOKIE_NAME'] = 'my_session_cookie'
     Session(app)
 
 
