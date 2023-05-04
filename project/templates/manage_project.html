@@ -46,8 +46,9 @@
                     style="width:auto" id="bid_type">
 
                     <option selected disabled="disabled">Choose a bid type</option>
-                    <option value="IFB">Invitation for Bid (IFB)</option>
                     <option value="RFP">Request for Proposal (RFP)</option>
+                    <option value="RFQ">Request for Quote (RFQ)</option>
+                    <option value="RFI">Request for Information (RFI)</option>
                 </select>
             </div>
 
@@ -78,8 +79,9 @@
             </div>    
 
             <div class="mb-4 col-md-8 col-lg-6">
-                <input type="file" name="file" class="form-control">
+                <input type="file" name="file[]" class="form-control" multiple>
                 <label for="file" class="form-label">**PDFs only**</label>
+                <p>To submit multiple files, hold down the control key (Ctrl)</p>
             </div>
 
             <button type="submit" 
@@ -104,13 +106,13 @@
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Type</th>
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Issue Date</th>
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Close Date/Time</th>
-                    <th class="text-center align-middle" scope="col" colspan="2">Manage Files</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">View/Edit</th>
 
                 </tr>
             </thead>
     
             <tbody>
-                {% for project_meta, bid in bid_list %}
+                {% for bid in bid_list %}
                     <tr>
                         <td class="text-center align-middle" style="padding-left: 10px;">{{ bid.id }}</td>
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.title }}</td>
@@ -119,32 +121,17 @@
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.close_date.strftime('%b-%d-%Y %I:%M %p') }}</td>
 
                         <td class="text-center align-middle">
-                            <form action="{{ url_for('views.download_project') }}" method="POST">
-                                <input type="hidden" name="project_id" value="{{ project_meta.id }}">
+                            <form action="{{ url_for('views.view_bid_details') }}" method="POST">
                                 <input type="hidden" name="project_title" value="{{ bid.title }}">
-                                <input type="hidden" name="filename" value="{{ project_meta.title }}">
-                                <input type="hidden" name="date_time_stamp" value="{{ project_meta.date_time_stamp }}">
+                                <input type="hidden" name="bid_id" value="{{ bid.id }}">
                                 <button type="submit" 
                                     class="btn btn-primary"
                                     style="width:auto">
-                                    Download
+                                    Select
                                 </button>
                             </form>
                         </td>
 
-                        <td class="text-center align-middle">
-                            <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDelete()">
-                                <input type="hidden" name="project_id" value="{{ project_meta.id }}">
-                                <input type="hidden" name="project_title" value="{{ bid.title }}">
-                                <input type="hidden" name="filename" value="{{ project_meta.title }}">
-                                <input type="hidden" name="date_time_stamp" value="{{ project_meta.date_time_stamp }}">
-                                <button type="submit" 
-                                    class="btn btn-primary"
-                                    style="width:auto">
-                                    Delete
-                                </button>
-                            </form>
-                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -153,16 +140,6 @@
 </div>
 
 
-<script>
 
-function confirmDelete() {
-    if (confirm("Are you sure you want to delete this record?")) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-</script>
 
 {% endblock %}

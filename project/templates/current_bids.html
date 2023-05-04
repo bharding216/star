@@ -48,7 +48,7 @@
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Type</th>
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Issue Date</th>
                     <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Close Date/Time</th>
-                    <th class="text-center align-middle" scope="col" style="padding-right: 30px;">Supporting Files</th>
+                    <th class="text-center align-middle" scope="col" style="padding-right: 30px;">View/Apply</th>
                 </tr>
             </thead>
     
@@ -61,15 +61,13 @@
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.issue_date.strftime('%b-%d-%Y') }}</td>
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.close_date.strftime('%b-%d-%Y %I:%M %p') }}</td>
                         <td class="text-center align-middle" style="padding-right: 40px;">
-                            <form action="{{ url_for('views.download_project') }}" method="POST">
-                                <input type="hidden" name="project_id" value="{{ project_meta.id }}">
+                            <form action="{{ url_for('views.view_bid_details') }}" method="POST">
                                 <input type="hidden" name="project_title" value="{{ bid.title }}">
-                                <input type="hidden" name="filename" value="{{ project_meta.title }}">
-                                <input type="hidden" name="date_time_stamp" value="{{ project_meta.date_time_stamp }}">
+                                <input type="hidden" name="bid_id" value="{{ bid.id }}">
                                 <button type="submit" 
                                     class="btn btn-primary"
                                     style="width:auto">
-                                    Download
+                                    Select
                                 </button>
                             </form>
                         </td>
@@ -82,45 +80,6 @@
 
 
 
-
-
-
-<!--
-<div>
-    <div class="container pb-5" style="overflow-x: auto;">
-        <table id="current_bids_table" style="margin: 0 auto">
-            <thead>
-                <tr>
-                    <th class="text-center align-middle" scope="col">View Details</th>
-                    <th class="text-center align-middle" style="width: 150px" scope="col">Bid #</th>
-                    <th class="text-center align-middle" scope="col">Title</th>
-                    <th class="text-center align-middle" scope="col">Type</th>
-                    <th class="text-center align-middle" scope="col">Organization</th>
-                    <th class="text-center align-middle" scope="col">Issue Date</th>
-                    <th class="text-center align-middle" scope="col">Close Date</th>
-                </tr>
-            </thead>
-    
-            <tbody>
-                {% for bid in current_bids %}
-                    <tr>
-                        <td class="text-center align-middle">
-                            <form action="{{ url_for('views.bid_details') }}" method="POST">
-                                <input type="submit" class="btn btn-primary mt-3 mb-1 btn-sm" value="View details">
-                            </form>
-                        </td>
-                        <td class="text-center align-middle">{{ bid.bid_number }}</td>
-                        <td class="text-center align-middle">{{ bid.title }}</td>
-                        <td class="text-center align-middle">{{ bid.type }}</td>
-                        <td class="text-center align-middle">{{ bid.organization }}</td>
-                        <td class="text-center align-middle">{{ bid.issue_date }}</td>
-                        <td class="text-center align-middle">{{ bid.close_date }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>-->
 
 
 {% endblock %}

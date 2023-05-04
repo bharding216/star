@@ -19,6 +19,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 import requests
 from io import BytesIO
+from werkzeug.datastructures import Headers
+
 
 views = Blueprint('views', __name__)
 
@@ -190,68 +192,13 @@ def registration_business():
 
 
 
-@views.route('/test_upload', methods=['GET', 'POST'])
-def test_upload():
-    if request.method == 'POST':
-        # Configure S3 credentials
-        s3 = boto3.client('s3', 
-                        aws_access_key_id=os.getenv('s3_access_key_id'),
-                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
-
-        # Set the name of your S3 bucket
-        S3_BUCKET = 'star-uploads-bucket'
-
-        file = request.files['file']
-        filename = file.filename
-        s3.upload_fileobj(file, S3_BUCKET, filename)
-
-        return 'File uploaded successfully'
-
-    return '''
-        <!doctype html>
-        <h1>Upload a file</h1>
-        <form method="post" enctype="multipart/form-data">
-          <input type="file" name="file">
-          <input type="submit" value="Upload">
-        </form>
-    '''
-
-
-
-
-@views.route('/test_download/<string:filename>')
-def test_download(filename):
-    # Configure S3 credentials
-    s3 = boto3.client('s3', 
-                    aws_access_key_id=os.getenv('s3_access_key_id'),
-                    aws_secret_access_key=os.getenv('s3_secret_access_key'))
-
-    # Set the name of your S3 bucket
-    S3_BUCKET = 'star-uploads-bucket'
-
-    # Generate a temporary URL for the file
-    url = s3.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': S3_BUCKET,
-            'Key': filename
-        },
-        ExpiresIn=3600  # URL expires in 1 hour
-    )
-
-    return f'<a href="{url}">Click here to download {filename}</a>'
-
-
-
-
 
 
 
 @views.route('/manage_project', methods=['GET', 'POST'])
 def manage_project():
     if request.method == 'POST':
-        file = request.files['file']
-        filename = file.filename
+        files = request.files.getlist('file[]')
         now = datetime.datetime.now()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         secure_date_time_stamp = secure_filename(date_time_stamp)
@@ -263,17 +210,8 @@ def manage_project():
         close_date = request.form['close_date']
         notes = request.form['notes']
         
-        # Configure S3 credentials
-        s3 = boto3.client('s3', 
-                        aws_access_key_id=os.getenv('s3_access_key_id'),
-                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
-        
-        # Set the name of your S3 bucket
-        S3_BUCKET = 'star-uploads-bucket'
-
-        s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
-        s3.upload_fileobj(file, S3_BUCKET, s3_filename)
-
+        # First, create a new project record. Get the project record ID, then
+        # use that ID to create a 'project_meta' record for each file that was uploaded.
         new_project_record = {
             'title': project_title,
             'type': bid_type,
@@ -290,31 +228,126 @@ def manage_project():
             db_session.commit()
             new_project_id = new_project.id
 
-        new_metadata_record = {
-            'title': filename,
-            'uploaded_by_user_id': user_id,
-            'date_time_stamp': date_time_stamp,
-            'bid_id': new_project_id
-        }
 
-        with db.session() as db_session:
-            new_project = project_meta(**new_metadata_record)
-            db_session.add(new_project)
-            db_session.commit()
+        # Configure S3 credentials
+        s3 = boto3.client('s3', region_name='us-east-1',
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
 
-        flash('Project created successfully!', 'success')
+        for file in files:
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+
+            new_metadata_record = {
+                'title': file.filename,
+                'uploaded_by_user_id': user_id,
+                'date_time_stamp': date_time_stamp,
+                'bid_id': new_project_id
+            }
+
+            with db.session() as db_session:
+                new_project = project_meta(**new_metadata_record)
+                db_session.add(new_project)
+                db_session.commit()
+
+        flash('Project created successfully! All files have been uploaded.', 'success')
         return redirect(url_for('views.manage_project'))
 
     # Handle GET request:
     with db.session() as db_session:
-        bid_list = db_session.query(project_meta, bids) \
-                              .join(bids) \
-                              .all()
+        bid_list = db_session.query(bids).all()
 
     return render_template('manage_project.html',
                            user = current_user,
                            bid_list = bid_list
                            )
+
+
+
+@views.route('/view_bid_details', methods=['GET', 'POST'])
+def view_bid_details():
+    if request.method == 'POST':
+        bid_id = request.form['bid_id']
+
+    with db.session() as db_session:
+        bid_object = db_session.query(bids) \
+                              .filter_by(id = bid_id) \
+                              .first()
+
+        project_meta_records = db_session.query(project_meta) \
+                                         .filter_by(bid_id = bid_object.id) \
+                                         .all()
+
+    return render_template('view_bid_details.html', 
+                            user = current_user,
+                            bid_object = bid_object,
+                            project_meta_records = project_meta_records)
+
+
+
+@views.route('/apply_for_bid', methods=['GET', 'POST'])
+def apply_for_bid():
+    if request.method == 'POST':
+        return 'here is a page where you will soon be able to apply for this bid'
+
+
+
+
+@views.route('/upload_doc', methods=['GET', 'POST'])
+def upload_doc():
+    if request.method == 'POST':
+        bid_id = request.form['bid_id']
+        files = request.files.getlist('file[]')
+        now = datetime.datetime.now()
+        date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+        secure_date_time_stamp = secure_filename(date_time_stamp)
+        user_id = current_user.id
+
+
+        # Configure S3 credentials
+        s3 = boto3.client('s3', region_name='us-east-1',
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
+
+        for file in files:
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+
+            new_metadata_record = {
+                'title': file.filename,
+                'uploaded_by_user_id': user_id,
+                'date_time_stamp': date_time_stamp,
+                'bid_id': bid_id
+            }
+
+            with db.session() as db_session:
+                new_project = project_meta(**new_metadata_record)
+                db_session.add(new_project)
+                db_session.commit()
+
+        flash('File(s) uploaded successfully!', 'success')
+
+        with db.session() as db_session:
+            bid_object = db_session.query(bids) \
+                                .filter_by(id = bid_id) \
+                                .first()
+
+            project_meta_records = db_session.query(project_meta) \
+                                            .filter_by(bid_id = bid_object.id) \
+                                            .all()
+
+            return render_template('view_bid_details.html', 
+                                    user = current_user,
+                                    bid_object = bid_object,
+                                    project_meta_records = project_meta_records)
+
+
 
 
 
@@ -328,7 +361,7 @@ def download_project():
 
         s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
-        s3 = boto3.client('s3', 
+        s3 = boto3.client('s3', region_name='us-east-1',
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
@@ -344,11 +377,14 @@ def download_project():
         )
 
         response = requests.get(url)
+
         download_filename = secure_filename(filename)
 
-        response = make_response(BytesIO(response.content))
-        response.headers.set('Content-Disposition', 'attachment', filename=download_filename)
-        return response
+        headers = Headers()
+        headers.add('Content-Disposition', 'attachment', filename=download_filename)
+        response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
+
+        return Response(BytesIO(response.content), headers=headers)
 
 
 
@@ -359,23 +395,19 @@ def download_project():
 
 
 
-
-
-
-
-@views.route('/delete_project', methods = ['GET', 'POST'])
+@views.route('/delete_doc', methods = ['GET', 'POST'])
 @login_required
-def delete_project():
-    project_id = request.form['project_id']
+def delete_doc():
+    bid_id = request.form['bid_id']
+    doc_id = request.form['doc_id']
     filename = request.form['filename']
     date_time_stamp = request.form['date_time_stamp']
-
     secure_date_time_stamp = secure_filename(date_time_stamp)
 
     s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
     # Configure S3 credentials
-    s3 = boto3.client('s3', 
+    s3 = boto3.client('s3', region_name='us-east-1',
                     aws_access_key_id=os.getenv('s3_access_key_id'),
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
@@ -384,20 +416,71 @@ def delete_project():
 
     s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
 
-    # Then delete the meta data from the database.
+    # Then delete the meta data from the project_meta table.
     with db.session() as db_session:
-        obj = db_session.query(project_meta).get(project_id)
-        db_session.delete(obj)
+        record_to_delete = db_session.query(project_meta).get(doc_id)
+        db_session.delete(record_to_delete)
         db_session.commit()
 
-        bid_to_delete = db_session.query(bids).filter_by(id = obj.bid_id).first()
-        db_session.delete(bid_to_delete)
-        db_session.commit()
+    flash('Document deleted successfully.', 'success')
+    bid_object = db_session.query(bids) \
+                            .filter_by(id = bid_id) \
+                            .first()
 
-    flash('Project deleted successfully.', 'success')
-    return redirect(url_for('views.manage_project'))
+    project_meta_records = db_session.query(project_meta) \
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .all()
+
+    return render_template('view_bid_details.html', 
+                            user = current_user,
+                            bid_object = bid_object,
+                            project_meta_records = project_meta_records)
 
 
+
+
+@views.route('/delete_project', methods = ['GET', 'POST'])
+@login_required
+def delete_project():
+    if request.method == 'POST':
+        bid_id = request.form['bid_id']
+
+        with db.session() as db_session:
+            project_meta_records_to_delete = db_session.query(project_meta) \
+                                                       .filter_by(bid_id = bid_id) \
+                                                       .all()
+
+            # Configure S3 credentials
+            s3 = boto3.client('s3', region_name='us-east-1',
+                            aws_access_key_id=os.getenv('s3_access_key_id'),
+                            aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+            # Set the name of your S3 bucket
+            S3_BUCKET = 'star-uploads-bucket'
+
+            for record in project_meta_records_to_delete:
+                filename = record.title
+                date_time_stamp = record.date_time_stamp
+                secure_date_time_stamp = secure_filename(date_time_stamp.strftime('%Y-%m-%d %H:%M:%S'))
+
+                s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
+
+                s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
+                db_session.delete(record)
+
+            bid_to_delete = db_session.query(bids).filter_by(id = bid_id).first()
+            db_session.delete(bid_to_delete)
+            db_session.commit()
+                
+
+        with db.session() as db_session:
+            bid_list = db_session.query(bids).all()
+
+            flash('Project successfully deleted!', category='error')
+            return render_template('manage_project.html',
+                                user = current_user,
+                                bid_list = bid_list
+                                )
 
 
 
