@@ -107,45 +107,77 @@ def registration_location():
 @views.route('/registration_business', methods=['GET', 'POST'])
 def registration_business():
     if request.method == "POST":
-        duns = request.form['duns']
-        ein = request.form['ein']
         legal_structure = request.form['legal_structure']
-
-        session['duns'] = duns
-        session['ein'] = ein
         session['legal_structure'] = legal_structure
 
-        with db.session() as db_session:
-            new_supplier_info_record = supplier_info(first_name = session['first_name'],
-                                                     last_name = session['last_name'],
-                                                     company_name = session['company_name'],
-                                                     email = session['email'],
-                                                     phone = session['phone'],
-                                                     address_1 = session['address_1'],
-                                                     address_2 = session['address_2'],
-                                                     city = session['city'],
-                                                     state = session['state'],
-                                                     zip_code = session['zip_code'],
-                                                     duns = session['duns'],
-                                                     tax_id = session['ein'],
-                                                     legal_type = session['legal_structure'],
-                                                     )
-            db_session.add(new_supplier_info_record)
-            db_session.commit()
+        radio_type = request.form['radio_type']
+        if radio_type == 'individual':
+            ssn = request.form['ssn']
+            session['ssn'] = ssn
 
-            new_supplier_info_record_id = new_supplier_info_record.id
+            with db.session() as db_session:
+                new_supplier_info_record = supplier_info(first_name = session['first_name'],
+                                                        last_name = session['last_name'],
+                                                        company_name = session['company_name'],
+                                                        email = session['email'],
+                                                        phone = session['phone'],
+                                                        address_1 = session['address_1'],
+                                                        address_2 = session['address_2'],
+                                                        city = session['city'],
+                                                        state = session['state'],
+                                                        zip_code = session['zip_code'],
+                                                        ssn = session['ssn'],
+                                                        legal_type = session['legal_structure']
+                                                        )
+                db_session.add(new_supplier_info_record)
+                db_session.commit()
+                
+                new_supplier_info_record_id = new_supplier_info_record.id
 
-            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
-                                                       email = session['email'],
-                                                       password = session['password']
-                                                       )
-            db_session.add(new_supplier_login_record)
-            db_session.commit()
+                new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
+                                                        email = session['email'],
+                                                        password = session['password']
+                                                        )
+                db_session.add(new_supplier_login_record)
+                db_session.commit()
+
+        if radio_type == 'company':
+            ein = request.form['ein']
+            duns = request.form['duns']
+            session['ein'] = ein
+            session['duns'] = duns
+
+            with db.session() as db_session:
+                new_supplier_info_record = supplier_info(first_name = session['first_name'],
+                                                        last_name = session['last_name'],
+                                                        company_name = session['company_name'],
+                                                        email = session['email'],
+                                                        phone = session['phone'],
+                                                        address_1 = session['address_1'],
+                                                        address_2 = session['address_2'],
+                                                        city = session['city'],
+                                                        state = session['state'],
+                                                        zip_code = session['zip_code'],
+                                                        ein = session['ein'],
+                                                        duns = session['duns'],
+                                                        legal_type = session['legal_structure']
+                                                        )
+            
+                db_session.add(new_supplier_info_record)
+                db_session.commit()
+
+                new_supplier_info_record_id = new_supplier_info_record.id
+
+                new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
+                                                        email = session['email'],
+                                                        password = session['password']
+                                                        )
+                db_session.add(new_supplier_login_record)
+                db_session.commit()
 
         flash('New supplier profile created! Please login using your email and password to \
               apply for open bids.', category='success')
         return redirect(url_for('views.index'))
-
 
 
     return render_template('registration_business.html',
