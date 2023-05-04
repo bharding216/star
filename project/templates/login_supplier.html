@@ -2,6 +2,31 @@
 
 {% block title %}South Texas Agency for Resources | Supplier Login{% endblock %}
 
+{% block head %}
+<style>
+    .password-toggle-icon {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    padding-right: 5px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    }
+
+
+    #password {
+    padding-right: 40px; /* Ensure enough space for the icon */
+    }
+
+    #togglePassword {
+    font-size: 1.25rem;
+    color: gray;
+    }
+</style>
+
+{% endblock %}
+
+
 {% block content %}
 
 {% with messages = get_flashed_messages(with_categories=True) %}
@@ -42,12 +67,19 @@
                 <div class="form-floating mb-3">
                     <input type="password" id="password" placeholder="Password"
                         class="form-control" name="password">
+                    <span class="password-toggle-icon toggle-password">
+                        <i class="fa-solid fa-eye" id="togglePassword"></i>
+                    </span>
                     <label for="password">Password</label>
                 </div>
             </div>
         </div>
 
         <button type="submit" class="btn btn-primary">Login</button>
+
+        <div class="my-3">
+            <a href="{{ url_for('views.reset_password_request', user_type = 'supplier') }}">I forgot my password</a>
+        </div>
 
     </form>
 
@@ -66,5 +98,23 @@
 
 </div>
 
+
+<script>
+    const togglePassword = document.querySelector('.toggle-password');
+    const password = document.querySelector('#password');
+    const eyeIcon = document.querySelector('#togglePassword');
+
+    togglePassword.addEventListener('click', function (e) {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        if (type === 'password') {
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        } else {
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        }
+    });
+</script>
 
 {% endblock %}

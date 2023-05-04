@@ -2,6 +2,24 @@
 
 {% block title %}Supplier Registration | South Texas Agency for Resources{% endblock %}
 
+{% block head %}
+<style>
+#ssn_div {
+  display: block;
+}
+
+#ein_div {
+  display: none;
+}
+
+#duns_div {
+  display: none;
+}
+</style>
+
+{% endblock %}
+
+
 {% block content %}
 
     {% with messages = get_flashed_messages(with_categories=True) %}
@@ -30,24 +48,42 @@
 
     <form action="{{ url_for('views.registration_business') }}" method="POST">
 
-        <div class="form-floating mb-3 col-md-8 col-lg-6">
-            <input type="text" class="form-control" name="duns" id="duns"
-                placeholder="DUNS">
-            <label for="duns">DUNS</label>
-            <a href="https://www.dnb.com/duns-number/lookup.html"
-                style="color: rgb(31, 44, 229);"
-                target="_blank">
-                DUNS Lookup
-            </a>
+        <div class="mb-3" id="radio_buttons_div">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="radio_type" id="individual_radio" checked>
+                <label class="form-check-label" for="individual_radio">
+                I'm an individual
+                </label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="radio_type" id="company_radio">
+                <label class="form-check-label" for="company_radio">
+                I'm with a company
+                </label>
+            </div>
         </div>
 
-        <div class="form-floating mb-3 col-md-8 col-lg-6">
+        <div class="form-floating mb-3 col-md-8 col-lg-6" id="ssn_div">
+            <input type="text" class="form-control" id="ssn" name="ssn"
+                placeholder="SSN/TIN">
+            <label for="ssn">SSN/TIN</label>
+        </div>
+
+        <div class="form-floating mb-3 col-md-8 col-lg-6" id="ein_div">
             <input type="text" class="form-control" id="ein" name="ein"
                 placeholder="EIN">
             <label for="ein">EIN</label>
         </div>
 
-        <div class="mb-3">
+        <div class="form-floating mb-3 col-md-8 col-lg-6" id="duns_div">
+            <input type="text" class="form-control" id="duns" name="duns"
+                placeholder="DUNS (optional)">
+            <label for="duns">DUNS (optional)</label>
+        </div>
+
+
+        <div class="my-5">
             <select name="legal_structure" class="form-select" 
                 style="width:auto" id="legal_structure">
 
@@ -67,6 +103,31 @@
 </div>
 
 
+
+<script>
+    const individualRadio = document.getElementById('individual_radio');
+    const companyRadio = document.getElementById('company_radio');
+    const ssnInput = document.getElementById('ssn_div');
+    const einInput = document.getElementById('ein_div');
+    const dunsInput = document.getElementById('duns_div');
+  
+    individualRadio.addEventListener('change', () => {
+      if (individualRadio.checked) {
+        ssnInput.style.display = 'block';
+        einInput.style.display = 'none';
+        dunsInput.style.display = 'none';
+      }
+    });
+  
+    companyRadio.addEventListener('change', () => {
+      if (companyRadio.checked) {
+        ssnInput.style.display = 'none';
+        einInput.style.display = 'block';
+        dunsInput.style.display = 'block';
+      }
+    });
+  </script>
+  
 
 
 {% endblock %}

@@ -4,12 +4,13 @@ from flask_login import login_required, current_user, login_user, logout_user
 from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login
 from datetime import datetime
 import datetime
-# from flask_mail import Message
+from flask_mail import Message
 from . import db, mail
-# from helpers import generate_sitemap
+from helpers import generate_sitemap
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-# from itsdangerous.exc import BadSignature
+from itsdangerous.exc import BadSignature
+from itsdangerous.url_safe import URLSafeSerializer
 import os
 import uuid
 import string
@@ -410,7 +411,7 @@ def update_supplier_settings(field_name):
 
         supplier_info_obj = current_user.supplier
         setattr(supplier_info_obj, field_name, new_value)
-        
+
         with db.session() as db_session:
             db_session.commit()
             flash('Your settings have been successfully updated!', 'success')
@@ -485,6 +486,98 @@ def login_supplier():
     return render_template('login_supplier.html',
                            user = current_user
                            )
+
+
+@views.route("/reset_password_request/<string:user_type>", methods=['GET', 'POST'])
+def reset_password_request(user_type):
+    if request.method == "POST":
+        email = request.form.get("email")
+        
+        if user_type == 'supplier':
+            user = supplier_login.query.filter_by(email=email).first()
+        # else: admin code block to go here
+
+        if user:
+            current_time = datetime.datetime.now().time()
+            current_time_str = current_time.strftime('%H:%M:%S')
+
+            s = URLSafeSerializer(os.getenv('secret_key'))
+
+            # 'dumps' takes a list as input and serializes it into a string representation.
+            # This returns a string representation of the data - encoded using your secret key.
+            token = s.dumps([email, current_time_str])
+
+            reset_password_url = url_for('views.reset_password', 
+                                          token = token, 
+                                          _external=True
+                                          )
+
+            msg = Message('Password Reset Request', 
+                sender = ("STAR", 'hello@stxresources.org'),
+                recipients = [email],
+                body=f'Reset your password by visiting the following link: {reset_password_url}')
+
+            mail.send(msg) 
+            flash('Success! We sent you an email containing a link where you can reset your password.', category = 'success')
+            return redirect(url_for('views.index'))
+
+        else:
+            flash('That email does not exist in our system. Please try again.', category = 'error')
+            return redirect(url_for('views.reset_password_request',
+                                     user_type = user_type,
+                                     user = current_user
+                                     )
+                            )
+    
+    else:
+        return render_template("reset_password_form.html", 
+                               user_type = user_type,
+                               user = current_user)
+
+
+
+
+@views.route("/reset_password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    if request.method == "POST":
+
+        s = URLSafeSerializer(os.getenv('secret_key'))
+        try: 
+            # loads => take in a serialized string and generate the original list of string inputs.
+            # The first element in the list is the user's email.
+            user_email_from_token = (s.loads(token))[0]
+        except BadSignature:
+            flash('You do not have permission to change the password for this email. Please contact us if you continue to have issues.', category = 'error')
+            return redirect(url_for('views.reset_password', 
+                                    token = token))
+
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if new_password != confirm_password:
+            flash('Those passwords do not match. Please try again.', category='error')
+            return redirect(url_for('views.reset_password', 
+                                    token = token))
+
+        hashed_password = generate_password_hash(new_password)
+        
+        user = supplier_login.query.filter_by(email = user_email_from_token).first()
+        if user is None: # Then it must have been an admin requesting a new password
+            user = admin_login.query.filter_by(email = user_email_from_token).first()
+
+        user.password = hashed_password
+        db.session.commit()
+
+        flash('Your password has been successfully updated! Please login.', category = 'success')
+        return redirect(url_for('views.index'))
+
+    else:
+        return render_template("reset_password.html", 
+                               user = current_user, 
+                               token = token
+                               )
+
+
 
 
 @views.route('/login_admin', methods=['GET', 'POST'])
