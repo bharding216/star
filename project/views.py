@@ -369,6 +369,56 @@ def delete_project():
 
 
 
+@views.route("/supplier_settings", methods=['GET', 'POST'])
+@login_required
+def supplier_settings():
+    if request.method == 'POST':
+        # The name of the category you are updating.
+        field_name = request.form['field_name']
+
+        return render_template('update_supplier_settings.html', 
+                               user = current_user, 
+                               field_name = field_name)
+
+    return render_template('supplier_settings.html', user = current_user)
+
+
+@views.route("/update_supplier_settings/<string:field_name>", methods=['GET', 'POST'])
+@login_required
+def update_supplier_settings(field_name):
+    if request.method == 'POST':
+        new_value = request.form[field_name]
+
+        if field_name == 'password':
+            password2 = request.form['password2']
+            if new_value == password2:
+                new_value = generate_password_hash(new_value)
+                current_user.password = new_value
+
+                with db.session() as db_session:
+                    db_session.add(current_user)
+                    db_session.commit()
+
+                    flash('Password successfully updated!', 'success')
+                    return redirect(url_for('views.supplier_settings'))
+
+            else:
+                flash('Those password do not match, please try again.', 'error')
+                return render_template('update_supplier_settings.html',
+                                    user = current_user,
+                                    field_name = field_name)
+
+        supplier_info_obj = current_user.supplier
+        setattr(supplier_info_obj, field_name, new_value)
+        
+        with db.session() as db_session:
+            db_session.commit()
+            flash('Your settings have been successfully updated!', 'success')
+            return redirect(url_for('views.supplier_settings'))
+    else:
+        return render_template('update_supplier_settings.html')
+
+
 
 
 @views.route('/current_bids', methods=['GET', 'POST'])
