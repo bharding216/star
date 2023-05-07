@@ -2,6 +2,21 @@
 
 {% block title %}View Bid Details | STAR{% endblock %}
 
+{% block head %}
+<style>
+#create_acct_link {
+  color: blue;
+  text-decoration: underline;
+}
+
+#create_acct_link:hover {
+  color: black;
+  text-decoration: underline;
+}
+</style>
+
+{% endblock %}
+
 {% block content %}
 
 <div class="container my-5">
@@ -70,6 +85,7 @@
 
 <div class="container my-5">
     <div style="overflow-x: auto;">
+        <h4>Bid Attachments</h4>
         <table>
             <thead>
                 <tr>
@@ -137,6 +153,48 @@
 </div>
 
 {% if user.is_authenticated and session['user_type'] == 'admin' %}
+    {% if applications_for_bid|length != 0 %}
+        <div class="pb-5">
+            <div class="container" style="overflow-x: auto;">
+                <h4 class="mb-3">Applications Received</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center align-middle" scope="col" style="width: 150px; padding-left: 10px;">Supplier ID</th>
+                            <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Company Name</th>
+                            <th class="text-center align-middle" scope="col" style="width: 250px; padding: 0px 20px;">Date/Time Submitted</th>
+                            <th class="text-center align-middle" scope="col" style="width: 150px; padding: 0px 20px;">View</th>
+                        </tr>
+                    </thead>
+            
+                    <tbody>
+                        {% for application in applications_for_bid %}
+                            <tr>
+                                <td class="text-center align-middle" style="padding-left: 10px;">{{ application.supplier_id }}</td>
+                                <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ application.supplier.company_name }}</td>
+                                <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ application.date_time_stamp.strftime('%b-%d-%Y %I:%M %p') }}</td>
+                                <td class="text-center align-middle">
+                                    <form action="{{ url_for('views.view_application') }}" method="POST">
+                                        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                                        <input type="hidden" name="supplier_id" value="{{ application.supplier_id }}">
+                                        <button type="submit" 
+                                            class="btn btn-primary"
+                                            style="width:auto">
+                                            Select
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+
+
+
 <div class="container my-5">
     <h4 class="mb-3">Delete Project and Attached Documents</h4>
     <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDeleteProject()">
@@ -151,10 +209,90 @@
 {% endif %}
 
 
+{% if not user.is_authenticated %}
+<div class="container my-5">
+    <h4 class="mb-3">To apply for this bid, please 
+        <a class="hover-link" href="{{ url_for('views.registration_personal') }}"
+            target="_blank" rel="noopener noreferrer" id="create_acct_link">create an account</a> or
+        <a class="hover-link" 
+            href="{{ url_for('views.login_supplier') }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            id="create_acct_link">
+            log in</a>.</h4>
+</div>
+{% endif %}
+
+{% if applied_status == 'applied' %}
+<div class="container my-5">
+    <div style="overflow-x: auto;">
+        <h4>Your Application Files</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-center align-middle" scope="col" 
+                        style="width: 300px; padding: 0px 20px;">
+                        Document Title
+                    </th>
+
+                    <th class="text-center align-middle" scope="col" 
+                        style="width: 200px; padding: 0px 20px;" colspan="2">
+                        Manage Docs
+                    </th>
+                </tr>
+            </thead>
+    
+            <tbody>
+                {% for document in applications_for_bid_and_supplier %}
+                    <tr>
+                        <td class="text-center align-middle" style="padding-left: 10px;">{{ document.filename }}</td>
+
+                        <td class="text-center align-middle" style="padding: 0px 20px;">
+                            <form action="{{ url_for('views.download_application_doc') }}" method="POST">
+                                <input type="hidden" name="filename" value="{{ document.filename }}">
+                                <input type="hidden" name="date_time_stamp" value="{{ document.date_time_stamp }}">
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Download
+                                </button>
+                            </form>
+                        </td>
+
+                        <td class="text-center align-middle" style="padding: 0px 20px;">
+                            <form action="{{ url_for('views.delete_application_doc') }}" method="POST" onsubmit="return confirmDeleteDoc()">
+                                <input type="hidden" name="filename" value="{{ document.filename }}">
+                                <input type="hidden" name="doc_id" value="{{ document.id }}">
+                                <input type="hidden" name="bid_id" value="{{ document.bid_id }}">
+                                <input type="hidden" name="date_time_stamp" value="{{ document.date_time_stamp }}">
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
 <div class="container my-5">
-    <h4 class="mb-3">Submit my application for this project</h4>
-    <form action="{{ url_for('views.apply_for_bid') }}" method="POST">
+    <h4 class="mb-3">Submit an application for this project</h4>
+    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+
+        <div class="mb-4 col-md-8 col-lg-6">
+            <input type="file" name="file[]" class="form-control" multiple>
+            <label for="file" class="form-label">**PDFs only**</label>
+            <p>To submit multiple files, hold down the control key (Ctrl)</p>
+        </div>
+
         <button type="submit" 
             class="btn btn-primary"
             style="width:auto">

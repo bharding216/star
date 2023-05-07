@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
-from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login
+from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login, applicant_docs
 from datetime import datetime
 import datetime
 from flask_mail import Message
@@ -196,6 +196,7 @@ def registration_business():
 
 
 @views.route('/manage_project', methods=['GET', 'POST'])
+@login_required
 def manage_project():
     if request.method == 'POST':
         files = request.files.getlist('file[]')
@@ -207,7 +208,10 @@ def manage_project():
         bid_type = request.form['bid_type']
         organization = request.form['organization']
         issue_date = request.form['issue_date']
-        close_date = request.form['close_date']
+        close_date = datetime.datetime.strptime(request.form['close_date'], '%Y-%m-%d')
+        close_time_str = request.form['close_time']
+        close_datetime_str = f"{close_date} {close_time_str}"
+        close_datetime_obj = datetime.datetime.strptime(close_datetime_str, '%Y-%m-%d %H:%M')
         notes = request.form['notes']
         
         # First, create a new project record. Get the project record ID, then
@@ -217,7 +221,7 @@ def manage_project():
             'type': bid_type,
             'organization': organization,
             'issue_date': issue_date,
-            'close_date': close_date,
+            'close_date': close_datetime_obj,
             'notes': notes,
             'status': 'open'
         }
@@ -281,17 +285,201 @@ def view_bid_details():
                                          .filter_by(bid_id = bid_object.id) \
                                          .all()
 
-    return render_template('view_bid_details.html', 
-                            user = current_user,
-                            bid_object = bid_object,
-                            project_meta_records = project_meta_records)
+        applications_for_bid = db_session.query(applicant_docs) \
+                                         .filter_by(bid_id = bid_object.id) \
+                                         .all()
+
+        return render_template('view_bid_details.html', 
+                                user = current_user,
+                                bid_object = bid_object,
+                                project_meta_records = project_meta_records,
+                                applications_for_bid = applications_for_bid)
+
+
+
+@views.route('/view_application', methods=['GET', 'POST'])
+@login_required
+def view_application():
+    if request.method == 'POST':
+        bid_id = request.form['bid_id']
+        supplier_id = request.form['supplier_id']
+
+    with db.session() as db_session:
+        bid_object = db_session.query(bids) \
+                              .filter_by(id = bid_id) \
+                              .first()
+
+        applications_for_bid_and_supplier = db_session.query(applicant_docs) \
+                                         .filter_by(bid_id = bid_object.id) \
+                                         .filter_by(supplier_id = supplier_id) \
+                                         .all()
+
+        return render_template('view_application.html', 
+                                user = current_user,
+                                bid_object = bid_object,
+                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+
 
 
 
 @views.route('/apply_for_bid', methods=['GET', 'POST'])
+@login_required
 def apply_for_bid():
     if request.method == 'POST':
-        return 'here is a page where you will soon be able to apply for this bid'
+        files = request.files.getlist('file[]')
+        bid_id = request.form['bid_id']
+        supplier_id = current_user.supplier.id
+        now = datetime.datetime.now()
+        date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+        secure_date_time_stamp = secure_filename(date_time_stamp)
+
+        # Configure S3 credentials
+        s3 = boto3.client('s3', region_name='us-east-1',
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        
+        # Set the name of your S3 bucket
+        S3_BUCKET = 'star-uploads-bucket'
+
+        for file in files:
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+
+            new_applicant_record = {
+                'filename': file.filename,
+                'date_time_stamp': date_time_stamp,
+                'supplier_id': supplier_id,
+                'bid_id': bid_id
+            }
+
+            with db.session() as db_session:
+                new_application = applicant_docs(**new_applicant_record)
+                db_session.add(new_application)
+                db_session.commit()
+
+        flash('Your application was successfully submitted!', category='success')
+        
+        with db.session() as db_session:
+            applications_for_bid_and_supplier = db_session.query(applicant_docs) \
+                                                        .filter_by(bid_id = bid_id) \
+                                                        .filter(applicant_docs.supplier_id == supplier_id) \
+                                                        .all()
+
+            if applications_for_bid_and_supplier is not None:
+                applied_status = 'applied'
+            else:
+                applied_status = 'not applied'
+
+            bid_object = db_session.query(bids) \
+                                .filter_by(id = bid_id) \
+                                .first()
+
+            project_meta_records = db_session.query(project_meta) \
+                                            .filter_by(bid_id = bid_object.id) \
+                                            .all()
+
+            applications_for_bid = db_session.query(applicant_docs) \
+                                            .filter_by(bid_id = bid_object.id) \
+                                            .all()
+
+            return render_template('view_bid_details.html', 
+                                    user = current_user,
+                                    bid_object = bid_object,
+                                    project_meta_records = project_meta_records,
+                                    applied_status = applied_status,
+                                    applications_for_bid_and_supplier = applications_for_bid_and_supplier,
+                                    applications_for_bid = applications_for_bid)
+
+
+@views.route('/download_application_doc', methods = ['GET', 'POST'])
+def download_application_doc():
+    if request.method == 'POST':
+        filename = request.form['filename']
+        date_time_stamp = request.form['date_time_stamp']
+        secure_date_time_stamp = secure_filename(date_time_stamp)
+
+        s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
+
+        s3 = boto3.client('s3', region_name='us-east-1',
+                        aws_access_key_id=os.getenv('s3_access_key_id'),
+                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+        S3_BUCKET = 'star-uploads-bucket'
+
+        url = s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': s3_filename
+            },
+            ExpiresIn=3600
+        )
+
+        response = requests.get(url)
+
+        download_filename = secure_filename(filename)
+
+        headers = Headers()
+        headers.add('Content-Disposition', 'attachment', filename=download_filename)
+        response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
+
+        return Response(BytesIO(response.content), headers=headers)
+
+
+@views.route('/delete_application_doc', methods = ['GET', 'POST'])
+@login_required
+def delete_application_doc():
+    bid_id = request.form['bid_id']
+    doc_id = request.form['doc_id']
+    filename = request.form['filename']
+    date_time_stamp = request.form['date_time_stamp']
+    secure_date_time_stamp = secure_filename(date_time_stamp)
+    supplier_id = current_user.supplier.id
+
+    s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
+
+    # Configure S3 credentials
+    s3 = boto3.client('s3', region_name='us-east-1',
+                    aws_access_key_id=os.getenv('s3_access_key_id'),
+                    aws_secret_access_key=os.getenv('s3_secret_access_key'))
+
+    # Set the name of your S3 bucket
+    S3_BUCKET = 'star-uploads-bucket'
+
+    s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
+
+    # Then delete the meta data from the project_meta table.
+    with db.session() as db_session:
+        record_to_delete = db_session.query(applicant_docs).get(doc_id)
+        db_session.delete(record_to_delete)
+        db_session.commit()
+
+        applications_for_bid_and_supplier = db_session.query(applicant_docs) \
+                                                    .filter_by(bid_id = bid_id) \
+                                                    .filter(applicant_docs.supplier_id == supplier_id) \
+                                                    .all()
+
+        if applications_for_bid_and_supplier is not None:
+            applied_status = 'applied'
+        else:
+            applied_status = 'not applied'
+
+        flash('Document deleted successfully.', 'success')
+        bid_object = db_session.query(bids) \
+                                .filter_by(id = bid_id) \
+                                .first()
+
+        project_meta_records = db_session.query(project_meta) \
+                                            .filter_by(bid_id = bid_object.id) \
+                                            .all()
+
+        return render_template('view_bid_details.html', 
+                                user = current_user,
+                                bid_object = bid_object,
+                                project_meta_records = project_meta_records,
+                                applied_status = applied_status,
+                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+
 
 
 
@@ -540,13 +728,10 @@ def update_supplier_settings(field_name):
 @views.route('/current_bids', methods=['GET', 'POST'])
 def current_bids():
     with db.session() as db_session:
-        open_bids = db_session.query(project_meta, bids) \
-                              .join(bids) \
-                              .filter(bids.status=='open') \
-                              .all()
+        bid_list = db_session.query(bids).all()
 
     return render_template('current_bids.html',
-                        open_bids = open_bids,
+                        bid_list = bid_list,
                         user = current_user
                         )
 

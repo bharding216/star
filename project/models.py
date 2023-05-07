@@ -64,3 +64,12 @@ class project_meta(db.Model):
     filename_uuid = db.Column(db.String(500))
     bid_id = db.Column(db.Integer, db.ForeignKey('bids.id'))
     bid = db.relationship('bids', backref='project_meta')
+
+class applicant_docs(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(500))
+    date_time_stamp = db.Column(DateTime)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_info.id'))
+    supplier = db.relationship('supplier_info', backref='applicant_docs')
+    bid_id = db.Column(db.Integer, db.ForeignKey('bids.id'))
+    bid = db.relationship('bids', backref='applicant_docs')
