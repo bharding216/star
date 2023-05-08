@@ -84,7 +84,7 @@ def contact():
 
 
 
-    recaptcha_site_key = os.getenv('recaptcha_site_key')
+    recaptcha_site_key = os.getenv('reCAPTCHA_site_key')
     return render_template('contact.html', 
                            user = current_user,
                            recaptcha_site_key = recaptcha_site_key)
