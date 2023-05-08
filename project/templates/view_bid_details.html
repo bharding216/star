@@ -53,7 +53,7 @@
         <li>Bid Type: {{bid_object.type}}</li>
         <li>Status: {{ bid_object.status }}</li>
         <li>Issue Date: {{ bid_object.issue_date.strftime('%b-%d-%Y') }}</li>
-        <li>Close Date/Time: {{ bid_object.close_date.strftime('%b-%d-%Y %I:%M %p') }}</li>
+        <li>Close Date/Time (CST): {{ bid_object.close_date.strftime('%b-%d-%Y %I:%M %p') }}</li>
         <li>Notes: {{ bid_object.notes }}</li>
     </ul>
 </div>
@@ -82,7 +82,7 @@
     </div>
 {% endif %}
 
-
+{% if project_meta_records|length != 0 %}
 <div class="container my-5">
     <div style="overflow-x: auto;">
         <h4>Bid Attachments</h4>
@@ -151,6 +151,7 @@
         </table>
     </div>
 </div>
+{% endif %}
 
 {% if user.is_authenticated and session['user_type'] == 'admin' %}
     {% if applications_for_bid|length != 0 %}

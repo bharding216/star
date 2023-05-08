@@ -12,7 +12,7 @@ class bids(db.Model):
     type = db.Column(db.String(45))
     organization = db.Column(db.String(100))
     issue_date = db.Column(Date)
-    close_date = db.Column(Date)
+    close_date = db.Column(DateTime)
     notes = db.Column(db.String(16000000))
     status = db.Column(db.String(45))
 

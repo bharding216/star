@@ -1,6 +1,16 @@
 {% extends 'base.html' %}
 
-{% block title %}South Texas Agency for Resources | Login{% endblock %}
+{% block title %}South Texas Agency for Resources | Contact{% endblock %}
+
+{% block head %}
+<script src="https://www.google.com/recaptcha/api.js"></script>
+
+<script>
+    function onSubmit(token) {
+      document.getElementById("contact-form").submit();
+    }
+  </script>
+{% endblock %}
 
 {% block content %}
 
@@ -36,7 +46,7 @@
 
 <div class="container my-5">
 
-    <form action="{{ url_for('views.contact') }}" method="post">
+    <form action="{{ url_for('views.contact') }}" method="post" id="contact-form">
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="text" class="form-control" id="first_name" name="first_name"
@@ -68,7 +78,11 @@
             <label for="message">Message</label>
         </div>        
 
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button class="g-recaptcha btn btn-primary" 
+                data-sitekey="{{ recaptcha_site_key }}" 
+                data-callback='onSubmit' 
+                data-action='submit'
+                type="submit">Submit</button>
 
     </form>
 

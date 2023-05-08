@@ -34,16 +34,60 @@ def index():
 @views.route('/contact', methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
-        # Handle the form data
-        #
-        #
+        VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
+        secret_key = os.getenv('reCAPTCHA_secret_key')
+        recaptcha_site_key = os.getenv('reCAPTCHA_site_key')
 
-        flash("Thanks for reaching out! We'll get back to you within 1 business day.", category='success')
-        return redirect(url_for('views.index'))
+        # Get the reCAPTCHA response from the form
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        if recaptcha_response:
+            # Verify the reCAPTCHA response using the Google reCAPTCHA API
+            response = requests.post(url=VERIFY_URL + '?secret=' + secret_key + '&response=' + recaptcha_response).json()
 
-    return render_template('contact.html',
-                           user = current_user
-                           )
+            if response['success'] == True:
+                first_name = request.form['first_name']
+                last_name = request.form['last_name']
+                email = request.form['email']
+                phone = request.form['phone']
+                message = request.form['message']
+
+                msg = Message('New Contact Form Submission',
+                                sender = ("STAR", 'hello@stxresources.org'),
+                                recipients = ['bharding80@gmail.com'
+                                            ]
+                                )
+                
+                msg.html = render_template('contact_email.html',
+                                        first_name = first_name,
+                                        last_name = last_name,
+                                        email = email,
+                                        phone = phone,
+                                        message = message
+                                        )
+
+                mail.send(msg)
+
+                return render_template('contact_success.html', 
+                                        first_name = first_name,
+                                        email = email, 
+                                        phone = phone, 
+                                        message = message,
+                                        user = current_user
+                                        )
+
+            else:
+                flash('Invalid reCAPTCHA. Please try again.')
+                return redirect(url_for('views.contact'))
+        else:
+            flash('Please complete the reCAPTCHA.')
+            return redirect(url_for('views.contact'))
+
+
+
+    recaptcha_site_key = os.getenv('recaptcha_site_key')
+    return render_template('contact.html', 
+                           user = current_user,
+                           recaptcha_site_key = recaptcha_site_key)
 
 
 
@@ -208,12 +252,13 @@ def manage_project():
         bid_type = request.form['bid_type']
         organization = request.form['organization']
         issue_date = request.form['issue_date']
-        close_date = datetime.datetime.strptime(request.form['close_date'], '%Y-%m-%d')
-        close_time_str = request.form['close_time']
-        close_datetime_str = f"{close_date} {close_time_str}"
-        close_datetime_obj = datetime.datetime.strptime(close_datetime_str, '%Y-%m-%d %H:%M')
         notes = request.form['notes']
         
+        close_date = request.form['close_date']
+        close_time = request.form['close_time']
+        datetime_str = close_date + ' ' + close_time
+        datetime_obj = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+
         # First, create a new project record. Get the project record ID, then
         # use that ID to create a 'project_meta' record for each file that was uploaded.
         new_project_record = {
@@ -221,7 +266,7 @@ def manage_project():
             'type': bid_type,
             'organization': organization,
             'issue_date': issue_date,
-            'close_date': close_datetime_obj,
+            'close_date': datetime_obj,
             'notes': notes,
             'status': 'open'
         }
@@ -795,7 +840,9 @@ def reset_password_request(user_type):
         
         if user_type == 'supplier':
             user = supplier_login.query.filter_by(email=email).first()
-        # else: admin code block to go here
+        else:
+            user = admin_login.query.filter_by(email=email).first()
+
 
         if user:
             current_time = datetime.datetime.now().time()
