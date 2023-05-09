@@ -19,6 +19,7 @@
 
 {% block content %}
 
+
 <div class="container my-5">
     {% with messages = get_flashed_messages(with_categories=True) %}
     {% if messages %}
@@ -36,6 +37,7 @@
     {% endif %}
     {% endwith %}
 </div>
+
 
 <div class="container mt-5">
     <div class="row">
@@ -282,6 +284,7 @@
 {% endif %}
 
 
+
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
 <div class="container my-5">
     <h4 class="mb-3">Submit an application for this project</h4>
@@ -290,8 +293,8 @@
 
         <div class="mb-4 col-md-8 col-lg-6">
             <input type="file" name="file[]" class="form-control" multiple>
-            <label for="file" class="form-label">**PDFs only**</label>
-            <p>To submit multiple files, hold down the control key (Ctrl)</p>
+            <br>
+            <p>To submit multiple files, hold down the control key (Ctrl) on Windows or command (Cmd) on Mac.</p>
         </div>
 
         <button type="submit" 

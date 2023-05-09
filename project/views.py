@@ -54,7 +54,8 @@ def contact():
 
                 msg = Message('New Contact Form Submission',
                                 sender = ("STAR", 'hello@stxresources.org'),
-                                recipients = ['bharding80@gmail.com'
+                                recipients = ['bharding80@gmail.com',
+                                              'Micah@earl-law.com'
                                             ]
                                 )
                 
@@ -410,8 +411,10 @@ def apply_for_bid():
                 db_session.add(new_application)
                 db_session.commit()
 
-        flash('Your application was successfully submitted!', category='success')
-        
+        flash('Your application was successfully submitted! Feel free to log out. We will \
+              contact you via email or phone with next steps. Scroll down to view your application documents.', \
+                category='success')
+
         with db.session() as db_session:
             applications_for_bid_and_supplier = db_session.query(applicant_docs) \
                                                         .filter_by(bid_id = bid_id) \
@@ -435,13 +438,33 @@ def apply_for_bid():
                                             .filter_by(bid_id = bid_object.id) \
                                             .all()
 
+            supplier_object = db_session.query(supplier_info) \
+                                            .filter_by(id = supplier_id) \
+                                            .all()
+
+            msg = Message('New Application Submission',
+                            sender = ("STAR", 'hello@stxresources.org'),
+                            recipients = ['bharding80@gmail.com',
+                                            'Micah@earl-law.com'
+                                        ]
+                            )
+            
+            msg.html = render_template('contact_email.html',
+                                    bid_object = bid_object,
+                                    supplier_object = supplier_object
+                                    )
+
+            mail.send(msg)
+
+
             return render_template('view_bid_details.html', 
                                     user = current_user,
                                     bid_object = bid_object,
                                     project_meta_records = project_meta_records,
                                     applied_status = applied_status,
                                     applications_for_bid_and_supplier = applications_for_bid_and_supplier,
-                                    applications_for_bid = applications_for_bid)
+                                    applications_for_bid = applications_for_bid
+                                    )
 
 
 @views.route('/download_application_doc', methods = ['GET', 'POST'])

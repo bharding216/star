@@ -79,7 +79,7 @@
                                 </a>
 
                                 <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                    <a class="dropdown-item" href="{{ url_for('views.login_supplier') }}">Supplier</a>
+                                    <a class="dropdown-item" href="{{ url_for('views.login_supplier') }}">Vendor</a>
                                     <a class="dropdown-item" href="{{ url_for('views.login_admin') }}">Admin</a>
                                 </div>
                             </li>
@@ -87,7 +87,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
                                     href="{{ url_for('views.registration_personal') }}">
-                                    Supplier Registration
+                                    Create an Account
                                 </a>
                             </li>
                         {% endif %}
@@ -162,24 +162,25 @@
                     <h5 class="pb-2" style="color: black;">Quick Links</h5>
 
                     <p class="footer-links">                            
-                        <a href="{{ url_for('views.login_supplier') }}" class="nav-link">Supplier Login</a>
+                        <a href="{{ url_for('views.login_supplier') }}" class="nav-link">Vendor Login</a>
                     </p>
 
                     <p class="footer-links">
-                        <a class="nav-link" href="{{ url_for('views.registration_personal') }}">Supplier Registration</a>
+                        <a class="nav-link" href="{{ url_for('views.registration_personal') }}">Create an Account</a>
                     </p>
 
                     <p class="footer-links">
                         <a class="nav-link" href="{{ url_for('views.contact') }}">Contact</a>
                     </p>
 
+                    <!--
                     <p class="footer-links">                            
                         <a href="{{ url_for('views.terms') }}" class="nav-link">Terms & Conditions</a>
                     </p>
 
                     <p class="footer-links">                            
                         <a href="{{ url_for('views.privacy') }}" class="nav-link">Privacy Policy</a>
-                    </p>
+                    </p>-->
                 </div>
             </div>
 
