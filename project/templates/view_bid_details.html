@@ -163,7 +163,7 @@
                         <tr>
                             <th class="text-center align-middle" scope="col" style="width: 150px; padding-left: 10px;">Supplier ID</th>
                             <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Company Name</th>
-                            <th class="text-center align-middle" scope="col" style="width: 250px; padding: 0px 20px;">Date/Time Submitted</th>
+                            <th class="text-center align-middle" scope="col" style="width: 250px; padding: 0px 20px;">Date/Time Submitted (Central)</th>
                             <th class="text-center align-middle" scope="col" style="width: 150px; padding: 0px 20px;">View</th>
                         </tr>
                     </thead>
@@ -285,7 +285,7 @@
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
 <div class="container my-5">
     <h4 class="mb-3">Submit an application for this project</h4>
-    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmApply()">
         <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
 
         <div class="mb-4 col-md-8 col-lg-6">
@@ -320,6 +320,17 @@
             return false;
         }
     }
+
+
+    function confirmApply() {
+        const confirmation = window.confirm("Are you sure you've attached all your files?");
+        if (confirmation) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 </script>
 
 {% endblock %}
