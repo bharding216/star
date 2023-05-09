@@ -52,30 +52,52 @@ def contact():
                 phone = request.form['phone']
                 message = request.form['message']
 
-                msg = Message('New Contact Form Submission',
-                                sender = ("STAR", 'hello@stxresources.org'),
-                                recipients = ['bharding80@gmail.com',
-                                              'Micah@earl-law.com'
-                                            ]
-                                )
+                if not first_name:
+                    error = 'First name is required.'
+                elif not email:
+                    error = 'Email field is required.'
+                elif not message:
+                    error = 'Message is required.'
+                else:
+                    error = None
                 
-                msg.html = render_template('contact_email.html',
-                                        first_name = first_name,
-                                        last_name = last_name,
-                                        email = email,
-                                        phone = phone,
-                                        message = message
-                                        )
+                if not error:
+                    msg = Message('New Contact Form Submission',
+                                    sender = ("STAR", 'hello@stxresources.org'),
+                                    recipients = ['bharding80@gmail.com'
+                                                ]
+                                    )
+                    # 'Micah@earl-law.com'
 
-                mail.send(msg)
+                    msg.html = render_template('contact_email.html',
+                                            first_name = first_name,
+                                            last_name = last_name,
+                                            email = email,
+                                            phone = phone,
+                                            message = message
+                                            )
 
-                return render_template('contact_success.html', 
-                                        first_name = first_name,
-                                        email = email, 
-                                        phone = phone, 
-                                        message = message,
-                                        user = current_user
-                                        )
+                    mail.send(msg)
+
+                    return render_template('contact_success.html', 
+                                            first_name = first_name,
+                                            email = email, 
+                                            phone = phone, 
+                                            message = message,
+                                            user = current_user
+                                            )
+                else:
+                    flash(error, category='error')
+                    recaptcha_site_key = os.getenv('reCAPTCHA_site_key')
+                    return render_template('contact.html', 
+                                           user = current_user,
+                                           recaptcha_site_key = recaptcha_site_key,
+                                           first_name = first_name,
+                                           last_name = last_name,
+                                           email = email,
+                                           phone = phone,
+                                           message = message)
+
 
             else:
                 flash('Invalid reCAPTCHA. Please try again.')

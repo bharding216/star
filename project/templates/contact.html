@@ -50,31 +50,31 @@
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="text" class="form-control" id="first_name" name="first_name"
-                placeholder="First Name">
+                placeholder="First Name" value="{{ first_name }}" required>
             <label for="first_name">First Name</label>
         </div>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="text" class="form-control" id="last_name" name="last_name"
-                placeholder="Last Name">
+                placeholder="Last Name" value="{{ last_name }}">
             <label for="last_name">Last Name</label>
         </div>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="email" class="form-control" id="email" name="email"
-                placeholder="Email">
+                placeholder="Email" value="{{ email }}" required>
             <label for="email">Email</label>
         </div>
 
         <div class="form-floating mb-3 col-md-8 col-lg-6">
             <input type="tel" class="form-control" name="phone" id="phone" 
-                placeholder="Phone Number" maxlength="15"/> 
+                placeholder="Phone Number" value="{{ phone }}" maxlength="15"/> 
             <label for="phone">Phone Number</label>
         </div>
 
         <div class="form-floating mb-3 col-md-12 col-lg-8">
             <textarea class="form-control" id="message" name="message"
-                placeholder="Message" style="height: 100px;"></textarea>
+                placeholder="Message" value="{{ message }}" style="height: 100px;" required></textarea>
             <label for="message">Message</label>
         </div>        
 
