@@ -104,6 +104,13 @@
                         {% if user.is_authenticated and session['user_type'] == 'supplier' %}
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
+                                    href="{{ url_for('views.applications_summary_page') }}">
+                                    My Applications
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" 
                                     href="{{ url_for('views.supplier_settings') }}">
                                     Edit Profile
                                 </a>

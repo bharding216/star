@@ -287,6 +287,9 @@
 
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
 <div class="container my-5">
+    
+    {% if applications_for_bid_and_supplier|length == 0 %}
+
     <h4 class="mb-3">Submit an application for this project</h4>
     <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmApply()">
         <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
@@ -302,7 +305,30 @@
             style="width:auto">
             Apply
         </button>
+
     </form>
+
+    {% else %}
+
+    <h4 class="mb-3">Attach more files to your application</h4>
+    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmApply()">
+        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+
+        <div class="mb-4 col-md-8 col-lg-6">
+            <input type="file" name="file[]" class="form-control" multiple>
+            <br>
+            <p>To submit multiple files, hold down the control key (Ctrl) on Windows or command (Cmd) on Mac.</p>
+        </div>
+
+        <button type="submit" 
+            class="btn btn-primary"
+            style="width:auto">
+            Attach
+        </button>
+
+    </form>
+
+    {% endif %}
 </div>
 {% endif %}
 

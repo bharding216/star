@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
+from sqlalchemy import and_
 from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login, applicant_docs
 from datetime import datetime
 import pytz
@@ -64,10 +65,11 @@ def contact():
                 if not error:
                     msg = Message('New Contact Form Submission',
                                     sender = ("STAR", 'hello@stxresources.org'),
-                                    recipients = ['bharding80@gmail.com'
+                                    recipients = ['bharding80@gmail.com',
+                                                  'Micah@earl-law.com'
                                                 ]
                                     )
-                    # 'Micah@earl-law.com'
+                    
 
                     msg.html = render_template('contact_email.html',
                                             first_name = first_name,
@@ -340,8 +342,8 @@ def manage_project():
 
 
 
-@views.route('/view_bid_details', methods=['GET', 'POST'])
-def view_bid_details():
+@views.route('/view_bid_details/<int:bid_id>', methods=['GET', 'POST'])
+def view_bid_details(bid_id):
     if request.method == 'POST':
         bid_id = request.form['bid_id']
 
@@ -365,11 +367,51 @@ def view_bid_details():
             application.date_time_stamp = central_datetime
 
 
+        if session['user_type'] == 'supplier':
+            has_applied = db_session.query(applicant_docs) \
+                .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
+                .first() is not None
+
+            if has_applied:
+                applied_status = 'applied'
+
+                applications_for_bid_and_supplier = db_session.query(applicant_docs) \
+                                    .filter_by(bid_id = bid_object.id) \
+                                    .filter_by(supplier_id = current_user.id) \
+                                    .all()
+            else:
+                applied_status = 'not applied'
+                applications_for_bid_and_supplier = []
+
+
         return render_template('view_bid_details.html', 
                                 user = current_user,
                                 bid_object = bid_object,
                                 project_meta_records = project_meta_records,
-                                applications_for_bid = applications_for_bid)
+                                applications_for_bid = applications_for_bid,
+                                applied_status = applied_status,
+                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+
+
+
+
+@views.route('/applications_summary_page', methods=['GET', 'POST'])
+@login_required
+def applications_summary_page():
+    with db.session() as db_session:
+        supplier_id = current_user.id
+
+        bid_ids = [row.bid_id for row in applicant_docs.query.filter_by(supplier_id=supplier_id).all()]
+    
+        bid_list = bids.query.filter(bids.id.in_(bid_ids)).all()
+
+        return render_template('applications_summary_page.html',
+                            bid_list = bid_list,
+                            user = current_user
+                            )
+
+
+
 
 
 
@@ -571,14 +613,15 @@ def delete_application_doc():
                                             .filter_by(bid_id = bid_object.id) \
                                             .all()
 
-        return render_template('view_bid_details.html', 
-                                user = current_user,
-                                bid_object = bid_object,
-                                project_meta_records = project_meta_records,
-                                applied_status = applied_status,
-                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+        # return render_template('view_bid_details.html', 
+        #                         user = current_user,
+        #                         bid_object = bid_object,
+        #                         project_meta_records = project_meta_records,
+        #                         applied_status = applied_status,
+        #                         applications_for_bid_and_supplier = applications_for_bid_and_supplier)
 
-
+        return redirect(url_for('views.view_bid_details',
+                                bid_id = bid_object.id))
 
 
 
