@@ -344,28 +344,25 @@ def manage_project():
 
 @views.route('/view_bid_details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
-    if request.method == 'POST':
-        bid_id = request.form['bid_id']
 
     with db.session() as db_session:
         bid_object = db_session.query(bids) \
-                              .filter_by(id = bid_id) \
-                              .first()
+                            .filter_by(id = bid_id) \
+                            .first()
 
         project_meta_records = db_session.query(project_meta) \
-                                         .filter_by(bid_id = bid_object.id) \
-                                         .all()
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .all()
 
         applications_for_bid = db_session.query(applicant_docs) \
-                                         .filter_by(bid_id = bid_object.id) \
-                                         .all()
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .all()
 
         central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
         for application in applications_for_bid:
             utc_datetime = application.date_time_stamp
             central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
             application.date_time_stamp = central_datetime
-
 
         if session['user_type'] == 'supplier':
             has_applied = db_session.query(applicant_docs) \
@@ -383,6 +380,9 @@ def view_bid_details(bid_id):
                 applied_status = 'not applied'
                 applications_for_bid_and_supplier = []
 
+        else: # user is admin
+            applied_status = None
+            applications_for_bid_and_supplier = None
 
         return render_template('view_bid_details.html', 
                                 user = current_user,
@@ -391,7 +391,7 @@ def view_bid_details(bid_id):
                                 applications_for_bid = applications_for_bid,
                                 applied_status = applied_status,
                                 applications_for_bid_and_supplier = applications_for_bid_and_supplier)
-
+                
 
 
 
@@ -447,16 +447,14 @@ def apply_for_bid():
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
         supplier_id = current_user.supplier.id
-        now = datetime.datetime.now()
-        date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+        now = datetime.datetime.utcnow()
+        date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
         secure_date_time_stamp = secure_filename(date_time_stamp)
 
-        # Configure S3 credentials
         s3 = boto3.client('s3', region_name='us-east-1',
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
         
-        # Set the name of your S3 bucket
         S3_BUCKET = 'star-uploads-bucket'
 
         for file in files:
@@ -521,6 +519,7 @@ def apply_for_bid():
             mail.send(msg)
 
 
+
             return render_template('view_bid_details.html', 
                                     user = current_user,
                                     bid_object = bid_object,
@@ -578,17 +577,14 @@ def delete_application_doc():
 
     s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
-    # Configure S3 credentials
     s3 = boto3.client('s3', region_name='us-east-1',
                     aws_access_key_id=os.getenv('s3_access_key_id'),
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-    # Set the name of your S3 bucket
     S3_BUCKET = 'star-uploads-bucket'
 
     s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
 
-    # Then delete the meta data from the project_meta table.
     with db.session() as db_session:
         record_to_delete = db_session.query(applicant_docs).get(doc_id)
         db_session.delete(record_to_delete)
@@ -613,13 +609,6 @@ def delete_application_doc():
                                             .filter_by(bid_id = bid_object.id) \
                                             .all()
 
-        # return render_template('view_bid_details.html', 
-        #                         user = current_user,
-        #                         bid_object = bid_object,
-        #                         project_meta_records = project_meta_records,
-        #                         applied_status = applied_status,
-        #                         applications_for_bid_and_supplier = applications_for_bid_and_supplier)
-
         return redirect(url_for('views.view_bid_details',
                                 bid_id = bid_object.id))
 
@@ -630,7 +619,7 @@ def upload_doc():
     if request.method == 'POST':
         bid_id = request.form['bid_id']
         files = request.files.getlist('file[]')
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         secure_date_time_stamp = secure_filename(date_time_stamp)
         user_id = current_user.id

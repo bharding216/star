@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}STAR Current Bids{% endblock %}
+{% block title %}Current Bids | STAR {% endblock %}
 
 {% block content %}
 
@@ -41,6 +41,12 @@
 <div class="pb-5">
     <div class="container" style="overflow-x: auto;">
 
+        {% if bid_list|length == 0 %}
+
+        <p class="text-center">There are no bids to display.</p>
+
+        {% else %}
+
         <table style="margin: 0 auto">
             <thead>
                 <tr>
@@ -76,6 +82,9 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        {% endif %}
+
     </div>
 </div>
 

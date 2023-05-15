@@ -42,7 +42,7 @@
 <div class="container mt-5">
     <div class="row">
         <div class="col">
-            <h2>Viewing Details For: <u>{{ bid_object.title }}</u></h2>
+            <h3>Viewing Details For: <u>{{ bid_object.title }}</u></h3>
         </div>
     </div>
 </div>
@@ -69,7 +69,6 @@
             <form action="{{ url_for('views.upload_doc') }}" method="POST" enctype="multipart/form-data">
 
                 <input type="file" name="file[]" class="form-control" multiple>
-                <label for="file" class="form-label">**PDFs only**</label>
                 <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
 
                 <br>

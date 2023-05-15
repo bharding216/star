@@ -3,7 +3,7 @@ from sqlalchemy.dialects.mysql import BLOB
 from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import Flask
-from sqlalchemy import DateTime, Date
+from sqlalchemy import DateTime, Date, Text
 
 class bids(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,3 +73,11 @@ class applicant_docs(db.Model):
     supplier = db.relationship('supplier_info', backref='applicant_docs')
     bid_id = db.Column(db.Integer, db.ForeignKey('bids.id'))
     bid = db.relationship('bids', backref='applicant_docs')
+
+class chat_history(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    author_type = db.Column(db.Integer)
+    datetime_stamp = db.Column(DateTime)
+    comment = db.Column(Text(length=2**24-1))
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_info.id'))
+    supplier = db.relationship('supplier_info', backref='chat_history')

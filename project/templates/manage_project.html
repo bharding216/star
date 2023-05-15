@@ -87,8 +87,6 @@
 
             <div class="mb-4 col-md-8 col-lg-6">
                 <input type="file" name="file[]" class="form-control" multiple>
-                <label for="file" class="form-label">**PDFs only**</label>
-                <p>To submit multiple files, hold down the control key (Ctrl)</p>
             </div>
 
             <button type="submit" 
@@ -104,6 +102,12 @@
 <div class="py-5">
     <div class="container" style="overflow-x: auto;">
         <h3 class="mb-5">View Projects</h3>
+
+        {% if bid_list|length == 0 %}
+
+            <p>There are no projects to view.</p>
+
+        {% else %}
 
         <table style="margin: 0 auto">
             <thead>
@@ -128,7 +132,7 @@
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.close_date.strftime('%b-%d-%Y %I:%M %p') }}</td>
 
                         <td class="text-center align-middle">
-                            <form action="{{ url_for('views.view_bid_details') }}" method="POST">
+                            <form action="{{ url_for('views.view_bid_details', bid_id=bid.id) }}" method="POST">
                                 <input type="hidden" name="project_title" value="{{ bid.title }}">
                                 <input type="hidden" name="bid_id" value="{{ bid.id }}">
                                 <button type="submit" 
@@ -143,6 +147,9 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        {% endif %}
+
     </div>
 </div>
 
