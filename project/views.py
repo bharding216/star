@@ -2,7 +2,8 @@ from flask import Blueprint, render_template, request, redirect, flash, url_for,
     session, send_file, jsonify, make_response, Response, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import and_
-from project.models import bids, bid_contact, admin_login, supplier_info, project_meta, supplier_login, applicant_docs
+from project.models import bids, bid_contact, admin_login, supplier_info, \
+    project_meta, supplier_login, applicant_docs, chat_history
 from datetime import datetime
 import pytz
 import datetime
@@ -364,7 +365,15 @@ def view_bid_details(bid_id):
             central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
             application.date_time_stamp = central_datetime
 
+
+
         if session['user_type'] == 'supplier':
+
+            chat_history_records = chat_history.query \
+                .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
+                .all()
+
+
             has_applied = db_session.query(applicant_docs) \
                 .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
                 .first() is not None
@@ -383,6 +392,7 @@ def view_bid_details(bid_id):
         else: # user is admin
             applied_status = None
             applications_for_bid_and_supplier = None
+            chat_history_records = None
 
         return render_template('view_bid_details.html', 
                                 user = current_user,
@@ -390,8 +400,48 @@ def view_bid_details(bid_id):
                                 project_meta_records = project_meta_records,
                                 applications_for_bid = applications_for_bid,
                                 applied_status = applied_status,
+                                chat_history_records = chat_history_records,
                                 applications_for_bid_and_supplier = applications_for_bid_and_supplier)
-                
+
+
+
+
+@views.route('/post_chat_message', methods=['GET', 'POST'])
+@login_required
+def post_chat_message():
+    message = request.form['message']
+    bid_id = request.form['bid_id']
+    now = datetime.datetime.now()
+    date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    with db.session() as db_session:
+        # Get the supplier_id. Then just add the new record 
+        # into the chat_history table.
+        supplier_id = 1
+
+        if session['type'] == 'supplier':
+            author_type = 'vendor'
+        elif session['type'] == 'admin':
+            author_type = 'admin'
+        else:
+            return 'Error: Session user_type not set'
+
+        new_comment = chat_history(author_type = author_type, 
+                                datetime_submitted = date_time_stamp, 
+                                comment = message, 
+                                bid_id = bid_id,
+                                supplier_id = supplier_id
+                                )
+        
+        db.session.add(new_comment)
+        db.session.commit()
+
+        flash('New comment successfully added!', category='success')
+
+        return redirect(url_for('views.view_bid_details', 
+                        bid_id = bid_id))
+
+
 
 
 

@@ -81,3 +81,5 @@ class chat_history(db.Model):
     comment = db.Column(Text(length=2**24-1))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier_info.id'))
     supplier = db.relationship('supplier_info', backref='chat_history')
+    bid_id = db.Column(db.Integer, db.ForeignKey('bids.id'))
+    bid = db.relationship('bids', backref='chat_history')
