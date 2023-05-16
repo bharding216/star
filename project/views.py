@@ -366,12 +366,17 @@ def view_bid_details(bid_id):
             application.date_time_stamp = central_datetime
 
 
-
         if session['user_type'] == 'supplier':
 
             chat_history_records = chat_history.query \
                 .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
                 .all()
+
+            central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+            for message in chat_history_records:
+                utc_datetime = message.datetime_stamp
+                central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+                message.datetime_stamp = central_datetime
 
 
             has_applied = db_session.query(applicant_docs) \
@@ -411,23 +416,23 @@ def view_bid_details(bid_id):
 def post_chat_message():
     message = request.form['message']
     bid_id = request.form['bid_id']
-    now = datetime.datetime.now()
-    date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.datetime.utcnow()
+    datetime_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
     with db.session() as db_session:
-        # Get the supplier_id. Then just add the new record 
-        # into the chat_history table.
-        supplier_id = 1
 
-        if session['type'] == 'supplier':
+        if session['user_type'] == 'supplier':
             author_type = 'vendor'
-        elif session['type'] == 'admin':
+            supplier_id = current_user.supplier_id
+
+        elif session['user_type'] == 'admin':
             author_type = 'admin'
+            supplier_id = None
         else:
             return 'Error: Session user_type not set'
 
         new_comment = chat_history(author_type = author_type, 
-                                datetime_submitted = date_time_stamp, 
+                                datetime_stamp = datetime_stamp, 
                                 comment = message, 
                                 bid_id = bid_id,
                                 supplier_id = supplier_id
