@@ -66,10 +66,10 @@ def contact():
                 if not error:
                     msg = Message('New Contact Form Submission',
                                     sender = ("STAR", 'hello@stxresources.org'),
-                                    recipients = ['bharding80@gmail.com',
-                                                  'Micah@earl-law.com'
+                                    recipients = ['bharding80@gmail.com'
                                                 ]
                                     )
+                                    #'Micah@earl-law.com'
                     
 
                     msg.html = render_template('contact_email.html',
@@ -416,6 +416,7 @@ def view_bid_details(bid_id):
 def post_chat_message():
     message = request.form['message']
     bid_id = request.form['bid_id']
+    supplier_id = request.form['supplier_id']
     now = datetime.datetime.utcnow()
     datetime_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -427,7 +428,27 @@ def post_chat_message():
 
         elif session['user_type'] == 'admin':
             author_type = 'admin'
-            supplier_id = None
+            supplier_id = supplier_id
+
+            new_comment = chat_history(author_type = author_type, 
+                                    datetime_stamp = datetime_stamp, 
+                                    comment = message, 
+                                    bid_id = bid_id,
+                                    supplier_id = supplier_id
+                                    )
+            
+            db.session.add(new_comment)
+            db.session.commit()
+
+            flash('New comment successfully added!', category='success')
+
+            return redirect(url_for('views.view_application', 
+                            bid_id = bid_id,
+                            supplier_id = supplier_id
+                            ))
+
+
+
         else:
             return 'Error: Session user_type not set'
 
@@ -444,7 +465,8 @@ def post_chat_message():
         flash('New comment successfully added!', category='success')
 
         return redirect(url_for('views.view_bid_details', 
-                        bid_id = bid_id))
+                        bid_id = bid_id
+                        ))
 
 
 
@@ -470,27 +492,35 @@ def applications_summary_page():
 
 
 
-@views.route('/view_application', methods=['GET', 'POST'])
+@views.route('/view_application/<int:bid_id>/<int:supplier_id>', methods=['GET', 'POST'])
 @login_required
-def view_application():
-    if request.method == 'POST':
-        bid_id = request.form['bid_id']
-        supplier_id = request.form['supplier_id']
-
+def view_application(bid_id, supplier_id):
     with db.session() as db_session:
         bid_object = db_session.query(bids) \
-                              .filter_by(id = bid_id) \
-                              .first()
+                            .filter_by(id = bid_id) \
+                            .first()
 
         applications_for_bid_and_supplier = db_session.query(applicant_docs) \
-                                         .filter_by(bid_id = bid_object.id) \
-                                         .filter_by(supplier_id = supplier_id) \
-                                         .all()
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .filter_by(supplier_id = supplier_id) \
+                                        .all()
+
+        chat_history_records = chat_history.query \
+            .filter_by(supplier_id=supplier_id, bid_id=bid_id) \
+            .all()
+
+        central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+        for message in chat_history_records:
+            utc_datetime = message.datetime_stamp
+            central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+            message.datetime_stamp = central_datetime
 
         return render_template('view_application.html', 
                                 user = current_user,
                                 bid_object = bid_object,
-                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+                                applications_for_bid_and_supplier = applications_for_bid_and_supplier,
+                                chat_history_records = chat_history_records,
+                                supplier_id = supplier_id)
 
 
 
@@ -501,7 +531,7 @@ def apply_for_bid():
     if request.method == 'POST':
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
-        supplier_id = current_user.supplier.id
+        supplier_id = current_user.supplier_id
         now = datetime.datetime.utcnow()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
         secure_date_time_stamp = secure_filename(date_time_stamp)
@@ -557,22 +587,21 @@ def apply_for_bid():
 
             supplier_object = db_session.query(supplier_info) \
                                             .filter_by(id = supplier_id) \
-                                            .all()
+                                            .first()
 
             msg = Message('New Application Submission',
                             sender = ("STAR", 'hello@stxresources.org'),
-                            recipients = ['bharding80@gmail.com',
-                                            'Micah@earl-law.com'
+                            recipients = ['bharding80@gmail.com'
                                         ]
                             )
+                                    #'Micah@earl-law.com'
             
-            msg.html = render_template('contact_email.html',
+            msg.html = render_template('new_application_email.html',
                                     bid_object = bid_object,
                                     supplier_object = supplier_object
                                     )
 
             mail.send(msg)
-
 
 
             return render_template('view_bid_details.html', 
@@ -581,7 +610,8 @@ def apply_for_bid():
                                     project_meta_records = project_meta_records,
                                     applied_status = applied_status,
                                     applications_for_bid_and_supplier = applications_for_bid_and_supplier,
-                                    applications_for_bid = applications_for_bid
+                                    applications_for_bid = applications_for_bid,
+                                    supplier_object = supplier_object
                                     )
 
 

@@ -217,8 +217,8 @@
                 </form>
             </div>
         </div>
-    {% endif %}
 </div>
+{% endif %}
 
 
 
@@ -252,9 +252,7 @@
                                 <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ application.supplier.company_name }}</td>
                                 <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ application.date_time_stamp.strftime('%b-%d-%Y %I:%M %p') }}</td>
                                 <td class="text-center align-middle">
-                                    <form action="{{ url_for('views.view_application') }}" method="POST">
-                                        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
-                                        <input type="hidden" name="supplier_id" value="{{ application.supplier_id }}">
+                                    <form action="{{ url_for('views.view_application', bid_id=bid_object.id, supplier_id=application.supplier_id) }}" method="POST">
                                         <button type="submit" 
                                             class="btn btn-primary"
                                             style="width:auto">
@@ -408,6 +406,19 @@
 {% endif %}
 
 <script>
+
+    function toggleChatHistory() {
+        var div = document.getElementById("chat_history");
+        var button = document.getElementById("chat_button")
+        if (div.style.display === "none") {
+            div.style.display = "block";
+            button.innerHTML = "Hide";
+        } else {
+            div.style.display = "none";
+            button.innerHTML = "Show";
+        }
+    }
+
 
     function confirmDeleteDoc() {
         if (confirm("Are you sure you want to delete this file? You cannot undo this action.")) {
