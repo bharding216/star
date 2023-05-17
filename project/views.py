@@ -1160,6 +1160,7 @@ def admin_signup():
 @views.route("/logout")
 @login_required
 def logout():
+    session['user_type'] = None
     flash('User successfully logged out', category='success')
     logout_user()
 
