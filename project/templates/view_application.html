@@ -123,7 +123,8 @@
                 <form action="{{ url_for('views.post_chat_message') }}" method="POST">
                     <div class="row justify-content-center">
                         <div class="col-6">
-                            <textarea class="form-control" placeholder="Message" aria-label="Message" aria-describedby="basic-addon2" name="message" required></textarea>
+                            <textarea class="form-control" placeholder="Message" aria-label="Message" aria-describedby="basic-addon2" 
+                            name="message" required></textarea>
                         </div>       
 
                         <input type="hidden" name="bid_id" value="{{ bid_object.id }}">

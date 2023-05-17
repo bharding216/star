@@ -428,7 +428,6 @@ def post_chat_message():
 
         elif session['user_type'] == 'admin':
             author_type = 'admin'
-            supplier_id = supplier_id
 
             new_comment = chat_history(author_type = author_type, 
                                     datetime_stamp = datetime_stamp, 
