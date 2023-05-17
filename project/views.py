@@ -365,36 +365,41 @@ def view_bid_details(bid_id):
             central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
             application.date_time_stamp = central_datetime
 
+        if 'user_type' in session:
+            if session['user_type'] == 'supplier':
 
-        if session['user_type'] == 'supplier':
+                chat_history_records = chat_history.query \
+                    .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
+                    .all()
 
-            chat_history_records = chat_history.query \
-                .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
-                .all()
-
-            central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
-            for message in chat_history_records:
-                utc_datetime = message.datetime_stamp
-                central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-                message.datetime_stamp = central_datetime
+                central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+                for message in chat_history_records:
+                    utc_datetime = message.datetime_stamp
+                    central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+                    message.datetime_stamp = central_datetime
 
 
-            has_applied = db_session.query(applicant_docs) \
-                .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
-                .first() is not None
+                has_applied = db_session.query(applicant_docs) \
+                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
+                    .first() is not None
 
-            if has_applied:
-                applied_status = 'applied'
+                if has_applied:
+                    applied_status = 'applied'
 
-                applications_for_bid_and_supplier = db_session.query(applicant_docs) \
-                                    .filter_by(bid_id = bid_object.id) \
-                                    .filter_by(supplier_id = current_user.id) \
-                                    .all()
-            else:
-                applied_status = 'not applied'
-                applications_for_bid_and_supplier = []
+                    applications_for_bid_and_supplier = db_session.query(applicant_docs) \
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .filter_by(supplier_id = current_user.id) \
+                                        .all()
+                else:
+                    applied_status = 'not applied'
+                    applications_for_bid_and_supplier = []
 
-        else: # user is admin
+            else: # user is admin
+                applied_status = None
+                applications_for_bid_and_supplier = None
+                chat_history_records = None
+
+        else: 
             applied_status = None
             applications_for_bid_and_supplier = None
             chat_history_records = None
