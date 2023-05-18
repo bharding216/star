@@ -787,9 +787,15 @@ def download_project():
 
         download_filename = secure_filename(filename)
 
-        headers = Headers()
-        headers.add('Content-Disposition', 'attachment', filename=download_filename)
-        response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
+        # headers = Headers()
+        # headers.add('Content-Disposition', 'attachment', filename=download_filename)
+        # response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
+
+        headers = {
+            'Content-Disposition': f'attachment; filename="{download_filename}"',
+            'Content-Type': 'application/pdf'  # Specify the content type as PDF
+        }
+
 
         return Response(BytesIO(response.content), headers=headers)
 
