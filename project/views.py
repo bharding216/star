@@ -378,7 +378,7 @@ def view_bid_details(bid_id):
                         central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
                         message.datetime_stamp = central_datetime
                 else: # no chat history
-                    chat_history_records = None
+                    chat_history_records = []
 
                 has_applied = db_session.query(applicant_docs) \
                     .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
@@ -399,12 +399,12 @@ def view_bid_details(bid_id):
             else: # user is admin
                 applied_status = None
                 applications_for_bid_and_supplier = None
-                chat_history_records = None
+                chat_history_records = []
 
         else: # user is not logged in
             applied_status = None
             applications_for_bid_and_supplier = None
-            chat_history_records = None
+            chat_history_records = []
         
         print('right before return')
         return render_template('view_bid_details.html', 
