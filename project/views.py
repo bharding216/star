@@ -394,16 +394,16 @@ def view_bid_details(bid_id):
                               
                 else: # supplier has not applied
                     applied_status = 'not applied'
-                    applications_for_bid_and_supplier = None
+                    applications_for_bid_and_supplier = []
 
             else: # user is admin
-                applied_status = None
-                applications_for_bid_and_supplier = None
+                applied_status = 'not applied'
+                applications_for_bid_and_supplier = []
                 chat_history_records = []
 
         else: # user is not logged in
-            applied_status = None
-            applications_for_bid_and_supplier = None
+            applied_status = 'not applied'
+            applications_for_bid_and_supplier = []
             chat_history_records = []
         
         print('right before return')
