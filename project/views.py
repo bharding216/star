@@ -406,7 +406,6 @@ def view_bid_details(bid_id):
             applications_for_bid_and_supplier = []
             chat_history_records = []
         
-        print('right before return')
         return render_template('view_bid_details.html', 
                                 user = current_user,
                                 bid_object = bid_object,

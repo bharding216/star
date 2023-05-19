@@ -42,46 +42,34 @@
 <div class="container mt-5">
     <div class="row">
         <div class="col">
-            <h3>Viewing Details For: <u>{{ bid_object.title }}</u></h3>
+            <h3>Current Project: <u>{{ bid_object.title }}</u></h3>
         </div>
     </div>
 </div>
 
 
 <div class="container my-5">
-    <h4>Bid Details</h4>
-    <ul>
-        <li>Project ID: {{ bid_object.id }}</li>
-        <li>Bid Type: {{bid_object.type}}</li>
-        <li>Status: {{ bid_object.status }}</li>
-        <li>Issue Date: {{ bid_object.issue_date.strftime('%b-%d-%Y') }}</li>
-        <li>Close Date/Time (CST): {{ bid_object.close_date.strftime('%b-%d-%Y %I:%M %p') }}</li>
-        <li>Notes: {{ bid_object.notes }}</li>
-    </ul>
-</div>
-      
+    <div class="row">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex align-items-center table-header-primary">
+                    <h4 class="m-0">Bid Details</h4>
+                </div>
 
-{% if user.is_authenticated and session['user_type'] == 'admin' %}
-    <div class="container my-5">
-        <div class="mb-4 col-md-8 col-lg-6">
-            <h4 class="mb-3">Attach additional docs</h4>
-
-            <form action="{{ url_for('views.upload_doc') }}" method="POST" enctype="multipart/form-data">
-
-                <input type="file" name="file[]" class="form-control" multiple>
-                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
-
-                <br>
-
-                <button type="submit" 
-                    class="btn btn-primary"
-                    style="width:auto">
-                    Attach files
-                </button>
-            </form>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Project ID: {{ bid_object.id }}</li>
+                    <li class="list-group-item">Bid Type: {{bid_object.type}}</li>
+                    <li class="list-group-item">Status: {{ bid_object.status }}</li>
+                    <li class="list-group-item">Issue Date: {{ bid_object.issue_date.strftime('%b-%d-%Y') }}</li>
+                    <li class="list-group-item">Close Date/Time (CST): {{ bid_object.close_date.strftime('%b-%d-%Y %I:%M %p') }}</li>
+                    <li class="list-group-item">Notes: {{ bid_object.notes }}</li>
+                </ul>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
+
+
 
 {% if project_meta_records|length != 0 %}
 <div class="container my-5">
@@ -153,6 +141,38 @@
     </div>
 </div>
 {% endif %}
+
+
+
+
+
+{% if user.is_authenticated and session['user_type'] == 'admin' %}
+    <div class="container my-5">
+        <div class="mb-4 col-md-8 col-lg-6">
+            <h4 class="mb-3">Attach additional docs</h4>
+
+            <form action="{{ url_for('views.upload_doc') }}" method="POST" enctype="multipart/form-data">
+
+                <input type="file" name="file[]" class="form-control" multiple>
+                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+
+                <br>
+
+                <button type="submit" 
+                    class="btn btn-primary"
+                    style="width:auto">
+                    Attach files
+                </button>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+
+
+
+
+
 
 
 
@@ -362,24 +382,34 @@
 <div class="container my-5">
     
     {% if applications_for_bid_and_supplier|length == 0 %}
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center table-header-primary">
+                    <h4 class="m-0">Submit an application for this project</h4>
+                </div>
 
-    <h4 class="mb-3">Submit an application for this project</h4>
-    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmApply()">
-        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                <div class="card-body">
+                    <form action="{{ url_for('views.apply_for_bid') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmApply()">
+                        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
 
-        <div class="mb-4 col-md-8 col-lg-6">
-            <input type="file" name="file[]" class="form-control" multiple>
-            <br>
-            <p>To submit multiple files, hold down the control key (Ctrl) on Windows or command (Cmd) on Mac.</p>
+                        <div class="mb-4 col-md-8 col-lg-6">
+                            <input type="file" name="file[]" class="form-control" multiple>
+                            <br>
+                            <p>To submit multiple files, hold down the control key (Ctrl) on Windows or command (Cmd) on Mac.</p>
+                        </div>
+
+                        <button type="submit" 
+                            class="btn btn-primary"
+                            style="width:auto">
+                            Apply
+                        </button>
+
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <button type="submit" 
-            class="btn btn-primary"
-            style="width:auto">
-            Apply
-        </button>
-
-    </form>
+    </div>
 
     {% else %}
 
@@ -402,8 +432,16 @@
     </form>
 
     {% endif %}
+
+
+
 </div>
 {% endif %}
+
+
+
+
+
 
 <script>
 

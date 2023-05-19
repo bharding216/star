@@ -287,7 +287,10 @@ Mustard: #FFDB58
   }
   
   
-  
+
+  .table-header-primary {
+    background-color: #ffcba4;
+  }
   
   .table thead th {
     background-color: #ffcba4;
