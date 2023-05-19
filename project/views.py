@@ -345,7 +345,6 @@ def manage_project():
 
 @views.route('/view_bid_details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
-
     with db.session() as db_session:
         bid_object = db_session.query(bids) \
                             .filter_by(id = bid_id) \
@@ -370,18 +369,20 @@ def view_bid_details(bid_id):
 
                 chat_history_records = chat_history.query \
                     .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
-                    .all()
+                    .all() # this is a list
 
-                central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
-                for message in chat_history_records:
-                    utc_datetime = message.datetime_stamp
-                    central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-                    message.datetime_stamp = central_datetime
-
+                if chat_history_records:
+                    central_tz = pytz.timezone('America/Chicago')
+                    for message in chat_history_records:
+                        utc_datetime = message.datetime_stamp
+                        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+                        message.datetime_stamp = central_datetime
+                else: # no chat history
+                    chat_history_records = None
 
                 has_applied = db_session.query(applicant_docs) \
                     .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
-                    .first() is not None
+                    .first() is not None # returns true or false
 
                 if has_applied:
                     applied_status = 'applied'
@@ -390,20 +391,22 @@ def view_bid_details(bid_id):
                                         .filter_by(bid_id = bid_object.id) \
                                         .filter_by(supplier_id = current_user.id) \
                                         .all()
-                else:
+                              
+                else: # supplier has not applied
                     applied_status = 'not applied'
-                    applications_for_bid_and_supplier = []
+                    applications_for_bid_and_supplier = None
 
             else: # user is admin
                 applied_status = None
                 applications_for_bid_and_supplier = None
                 chat_history_records = None
 
-        else: 
+        else: # user is not logged in
             applied_status = None
             applications_for_bid_and_supplier = None
             chat_history_records = None
-
+        
+        print('right before return')
         return render_template('view_bid_details.html', 
                                 user = current_user,
                                 bid_object = bid_object,
