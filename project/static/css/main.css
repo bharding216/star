@@ -311,3 +311,9 @@ Mustard: #FFDB58
     border-right: 1px solid #ededed;
     height: 5rem;
   }
+
+  .custom-form-border {
+    border: 2px solid #ddd; /* Set border width and style */
+    border-radius: 5px; /* Add rounded corners if desired */
+    padding: 15px; /* Add padding for spacing */
+    }
