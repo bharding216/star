@@ -41,7 +41,7 @@
 
 <div class="container mt-5">
     <div class="row">
-        <div class="col">
+        <div class="col d-flex justify-content-center">
             <h3>Current Project: <u>{{ bid_object.title }}</u></h3>
         </div>
     </div>
@@ -50,7 +50,7 @@
 
 <div class="container my-5">
     <div class="row">
-        <div class="col-12 col-md-8 col-lg-6">
+        <div class="col-12 col-lg-6 mb-5 mb-lg-0">
             <div class="card">
                 <div class="card-header d-flex align-items-center table-header-primary">
                     <h4 class="m-0">Bid Details</h4>
@@ -66,107 +66,130 @@
                 </ul>
             </div>
         </div>
-    </div>
-</div>
 
 
+        {% if project_meta_records|length != 0 %}
+        <div class="col-12 col-lg-6">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card" style="overflow-x: auto;">
+                        <div class="card-header d-flex align-items-center table-header-primary">
+                            <h4 class="m-0">Bid Attachments</h4>
+                        </div>
 
-{% if project_meta_records|length != 0 %}
-<div class="container my-5">
-    <div style="overflow-x: auto;">
-        <h4>Bid Attachments</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th class="text-center align-middle" scope="col" 
-                        style="width: 300px; padding: 0px 20px;">
-                        Document Title
-                    </th>
+                        <div class="card-body d-flex justify-content-center">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th class="text-center align-middle" scope="col" 
+                                            style="width: 300px; padding: 0px 20px;">
+                                            Document Title
+                                        </th>
+                    
+                                        {% if user.is_authenticated and session['user_type'] == 'admin' %}
+                    
+                                        <th class="text-center align-middle" scope="col" 
+                                            style="width: 200px; padding: 0px 20px;" colspan="2">
+                                            Manage Docs
+                                        </th>
+                    
+                                        {% else %}
+                    
+                                        <th class="text-center align-middle" scope="col" 
+                                            style="width: 200px; padding: 0px 20px;">
+                                            Download
+                                        </th>
+                    
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                        
+                                <tbody>
+                                    {% for record in project_meta_records %}
+                                        <tr>
+                                            <td class="text-center align-middle" style="padding-left: 10px;">{{ record.title }}</td>
+                    
+                                            <td class="text-center align-middle" style="padding: 0px 20px;">
+                                                <form action="{{ url_for('views.download_project') }}" method="POST">
+                                                    <input type="hidden" name="filename" value="{{ record.title }}">
+                                                    <input type="hidden" name="date_time_stamp" value="{{ record.date_time_stamp }}">
+                                                    <button type="submit" 
+                                                        class="btn btn-primary"
+                                                        style="width:auto">
+                                                        Download
+                                                    </button>
+                                                </form>
+                                            </td>
+                    
+                                            {% if user.is_authenticated and session['user_type'] == 'admin' %}
+                                            <td class="text-center align-middle" style="padding: 0px 20px;">
+                                                <form action="{{ url_for('views.delete_doc') }}" method="POST" onsubmit="return confirmDeleteDoc()">
+                                                    <input type="hidden" name="filename" value="{{ record.title }}">
+                                                    <input type="hidden" name="doc_id" value="{{ record.id }}">
+                                                    <input type="hidden" name="bid_id" value="{{ record.bid_id }}">
+                                                    <input type="hidden" name="date_time_stamp" value="{{ record.date_time_stamp }}">
+                                                    <button type="submit" 
+                                                        class="btn btn-primary"
+                                                        style="width:auto">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </td>
+                                            {% endif %}
+                    
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    {% if user.is_authenticated and session['user_type'] == 'admin' %}
+            {% if user.is_authenticated and session['user_type'] == 'admin' %}
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center table-header-primary">
+                            <h4 class="m-0">Attach additional docs</h4>
+                        </div>
 
-                    <th class="text-center align-middle" scope="col" 
-                        style="width: 200px; padding: 0px 20px;" colspan="2">
-                        Manage Docs
-                    </th>
-
-                    {% else %}
-
-                    <th class="text-center align-middle" scope="col" 
-                        style="width: 200px; padding: 0px 20px;">
-                        Download
-                    </th>
-
-                    {% endif %}
-                </tr>
-            </thead>
-    
-            <tbody>
-                {% for record in project_meta_records %}
-                    <tr>
-                        <td class="text-center align-middle" style="padding-left: 10px;">{{ record.title }}</td>
-
-                        <td class="text-center align-middle" style="padding: 0px 20px;">
-                            <form action="{{ url_for('views.download_project') }}" method="POST">
-                                <input type="hidden" name="filename" value="{{ record.title }}">
-                                <input type="hidden" name="date_time_stamp" value="{{ record.date_time_stamp }}">
+                        <div class="card-body">
+                            <form action="{{ url_for('views.upload_doc') }}" method="POST" enctype="multipart/form-data">
+                
+                                <input type="file" name="file[]" class="form-control" multiple>
+                                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                
+                                <br>
+                
                                 <button type="submit" 
                                     class="btn btn-primary"
                                     style="width:auto">
-                                    Download
+                                    Attach files
                                 </button>
                             </form>
-                        </td>
-
-                        {% if user.is_authenticated and session['user_type'] == 'admin' %}
-                        <td class="text-center align-middle" style="padding: 0px 20px;">
-                            <form action="{{ url_for('views.delete_doc') }}" method="POST" onsubmit="return confirmDeleteDoc()">
-                                <input type="hidden" name="filename" value="{{ record.title }}">
-                                <input type="hidden" name="doc_id" value="{{ record.id }}">
-                                <input type="hidden" name="bid_id" value="{{ record.bid_id }}">
-                                <input type="hidden" name="date_time_stamp" value="{{ record.date_time_stamp }}">
-                                <button type="submit" 
-                                    class="btn btn-primary"
-                                    style="width:auto">
-                                    Delete
-                                </button>
-                            </form>
-                        </td>
-                        {% endif %}
-
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
 
 
-
-
-{% if user.is_authenticated and session['user_type'] == 'admin' %}
-    <div class="container my-5">
-        <div class="mb-4 col-md-8 col-lg-6">
-            <h4 class="mb-3">Attach additional docs</h4>
-
-            <form action="{{ url_for('views.upload_doc') }}" method="POST" enctype="multipart/form-data">
-
-                <input type="file" name="file[]" class="form-control" multiple>
-                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
-
-                <br>
-
-                <button type="submit" 
-                    class="btn btn-primary"
-                    style="width:auto">
-                    Attach files
-                </button>
-            </form>
         </div>
+        {% endif %}
+
+
     </div>
-{% endif %}
+</div>
+
+
+
+
+
+
+
+
 
 
 
@@ -178,65 +201,75 @@
 
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
 <div class="container my-5">
-    <h4 class="pb-3">Chat History</h4>
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center table-header-primary">
+                    <h4 class="m-0">Chat History</h4>
+                </div>
 
-    {% if chat_history_records|length == 0 %}
+                <div class="card-body">
+                    {% if chat_history_records|length == 0 %}
 
-        <p>Use our chat tool to directly message the bid manager.</p>
+                        <p>Use our chat tool to directly message the bid manager.</p>
 
-    {% else %}
+                    {% else %}
 
-        <button type="button" 
-                class="btn btn-primary"
-                style="width:auto"
-                onclick="toggleChatHistory()"
-                id="chat_button">
-                Hide
-        </button>
+                        <button type="button" 
+                                class="btn btn-primary"
+                                style="width:auto"
+                                onclick="toggleChatHistory()"
+                                id="chat_button">
+                                Hide
+                        </button>
 
-        <div id="chat_history">
-            <div style="width: 800px; overflow-x: auto;" class="mx-auto">
-                <table style="width: 100%">
-                    <thead>
-                        <tr>
-                            <th class="text-center align-middle" scope="col" style="width: 100px;">Author</th>
-                            <th class="text-center align-middle" scope="col" style="width: 300px; padding: 0px 20px;">Comment</th>
-                            <th class="text-center align-middle" scope="col" style="width: 250px; padding: 0px 0px;">Date/Time (CST)</th>
-                        </tr>
-                    </thead>
-        
-                    <tbody>
-                        {% for record in chat_history_records %}
-                            <tr>
-                                <td class="text-center align-middle" style="width: 100px; padding-left: 10px;">{{ record.author_type }}</td>
-                                <td class="text-center align-middle" style="width: 200px; padding: 0px 20px;">{{ record.comment }}</td>
-                                <td class="text-center align-middle" style="width: 200px; padding: 0px 20px;">{{ record.datetime_stamp.strftime('%b-%d-%Y %I:%M %p') }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        <div id="chat_history">
+                            <div style="width: 800px; overflow-x: auto;" class="mx-auto">
+                                <table style="width: 100%">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center align-middle" scope="col" style="width: 100px;">Author</th>
+                                            <th class="text-center align-middle" scope="col" style="width: 300px; padding: 0px 20px;">Comment</th>
+                                            <th class="text-center align-middle" scope="col" style="width: 250px; padding: 0px 0px;">Date/Time (CST)</th>
+                                        </tr>
+                                    </thead>
+                        
+                                    <tbody>
+                                        {% for record in chat_history_records %}
+                                            <tr>
+                                                <td class="text-center align-middle" style="width: 100px; padding-left: 10px;">{{ record.author_type }}</td>
+                                                <td class="text-center align-middle" style="width: 200px; padding: 0px 20px;">{{ record.comment }}</td>
+                                                <td class="text-center align-middle" style="width: 200px; padding: 0px 20px;">{{ record.datetime_stamp.strftime('%b-%d-%Y %I:%M %p') }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
 
-            {% endif %}
+                    {% endif %}
 
 
-            <div class="container my-5" style="width: 800px;">
-                <form action="{{ url_for('views.post_chat_message') }}" method="POST">
-                    <div class="row justify-content-center">
-                        <div class="col-6">
-                            <textarea class="form-control" placeholder="Message" aria-label="Message" aria-describedby="basic-addon2" name="message" required></textarea>
-                        </div>       
+                            <div>
+                                <form action="{{ url_for('views.post_chat_message') }}" method="POST">
+                                    <div class="row justify-content-center">
+                                        <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                            <textarea class="form-control" placeholder="Message" aria-label="Message" aria-describedby="basic-addon2" name="message" required></textarea>
+                                        </div>       
 
-                        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                                        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
 
-                        <div class="col-4 d-flex justify-content-center align-items-center">
-                            <button class="btn btn-primary" 
-                                    type="submit" style="height: auto;">Add message</button>
+                                        <div class="col-6 col-sm-4 d-flex justify-content-center align-items-center">
+                                            <button class="btn btn-primary" 
+                                                    type="submit" style="height: auto;">Add message</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </form>
             </div>
         </div>
+    </div>
 </div>
 {% endif %}
 
@@ -290,19 +323,30 @@
 
 
 
+<div class="container my-5 py-5">
+    <div class="row">
+        <div class="col-12 d-flex justify-content-center">
+            <h4 class="mb-3">Delete Project and Attached Documents</h4>
+        </div>
+    </div>
 
-<div class="container my-5">
-    <h4 class="mb-3">Delete Project and Attached Documents</h4>
-    <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDeleteProject()">
-        <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
-        <button type="submit" 
-            class="btn btn-danger"
-            style="width:auto">
-            Delete
-        </button>
-    </form>
+    <div class="row">
+        <div class="col-12 d-flex justify-content-center">
+            <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDeleteProject()">
+                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                <button type="submit" 
+                    class="btn btn-danger"
+                    style="width:auto">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 {% endif %}
+
+
+
 
 
 {% if not user.is_authenticated %}
@@ -379,7 +423,7 @@
 
 
 {% if user.is_authenticated and session['user_type'] == 'supplier' %}
-<div class="container my-5">
+<div class="container mb-5">
     
     {% if applications_for_bid_and_supplier|length == 0 %}
     <div class="row">
