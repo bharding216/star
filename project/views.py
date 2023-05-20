@@ -342,7 +342,7 @@ def manage_project():
                            )
 
 
-
+# a new comment
 @views.route('/view_bid_details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
     with db.session() as db_session:
