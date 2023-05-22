@@ -98,6 +98,10 @@ Mustard: #FFDB58
   .hover-link {
     color: black;
   }
+
+  .hover-link-blue {
+    color: blue;
+  }
   
   .hover-link:hover {
     color: #E2725B;

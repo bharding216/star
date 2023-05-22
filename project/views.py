@@ -342,7 +342,7 @@ def manage_project():
                            )
 
 
-@views.route('/view_bid_details/<int:bid_id>', methods=['GET', 'POST'])
+@views.route('/view-bid-details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
     with db.session() as db_session:
         bid_object = db_session.query(bids) \
@@ -477,7 +477,7 @@ def post_chat_message():
 
 
 
-@views.route('/applications_summary_page', methods=['GET', 'POST'])
+@views.route('/applications-summary-page', methods=['GET', 'POST'])
 @login_required
 def applications_summary_page():
     with db.session() as db_session:
@@ -536,8 +536,15 @@ def apply_for_bid():
     if request.method == 'POST':
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
+        bid = bids.query.get(bid_id)
+        close_date = bid.close_date
         supplier_id = current_user.supplier_id
         now = datetime.datetime.utcnow()
+
+        if close_date < now:
+            flash('The close date for this bid has passed.', category='error')
+            return redirect(url_for('views.view_bid_details', bid_id=bid_id))
+
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
         secure_date_time_stamp = secure_filename(date_time_stamp)
 
@@ -760,7 +767,7 @@ def upload_doc():
 
 
 
-@views.route('/download_project', methods = ['GET', 'POST'])
+@views.route('/download-project', methods = ['GET', 'POST'])
 def download_project():
     if request.method == 'POST':
         filename = request.form['filename']
@@ -809,7 +816,7 @@ def download_project():
 
 
 
-@views.route('/delete_doc', methods = ['GET', 'POST'])
+@views.route('/delete-doc', methods = ['GET', 'POST'])
 @login_required
 def delete_doc():
     bid_id = request.form['bid_id']
@@ -853,7 +860,7 @@ def delete_doc():
 
 
 
-@views.route('/delete_project', methods = ['GET', 'POST'])
+@views.route('/delete-project', methods = ['GET', 'POST'])
 @login_required
 def delete_project():
     if request.method == 'POST':
@@ -899,7 +906,7 @@ def delete_project():
 
 
 
-@views.route("/supplier_settings", methods=['GET', 'POST'])
+@views.route("/supplier-settings", methods=['GET', 'POST'])
 @login_required
 def supplier_settings():
     if request.method == 'POST':
@@ -913,7 +920,7 @@ def supplier_settings():
     return render_template('supplier_settings.html', user = current_user)
 
 
-@views.route("/update_supplier_settings/<string:field_name>", methods=['GET', 'POST'])
+@views.route("/update-supplier-settings/<string:field_name>", methods=['GET', 'POST'])
 @login_required
 def update_supplier_settings(field_name):
     if request.method == 'POST':
@@ -951,7 +958,7 @@ def update_supplier_settings(field_name):
 
 
 
-@views.route('/current_bids', methods=['GET', 'POST'])
+@views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
     with db.session() as db_session:
         bid_list = db_session.query(bids).all()
@@ -965,19 +972,19 @@ def current_bids():
 
 
 
-@views.route('/closed_bids', methods=['GET', 'POST'])
+@views.route('/closed-bids', methods=['GET', 'POST'])
 def closed_bids():
     return render_template('closed_bids.html',
                            user = current_user
                            )
 
-@views.route('/awarded_bids', methods=['GET', 'POST'])
+@views.route('/awarded-bids', methods=['GET', 'POST'])
 def awarded_bids():
     return render_template('awarded_bids.html',
                            user = current_user
                            )
 
-@views.route('/bid_details', methods=['GET', 'POST'])
+@views.route('/bid-details', methods=['GET', 'POST'])
 def bid_details():
     return render_template('bid_details.html',
                            user = current_user
@@ -988,7 +995,7 @@ def bid_details():
 
 
 
-@views.route('/login_supplier', methods=['GET', 'POST'])
+@views.route('/login-supplier', methods=['GET', 'POST'])
 def login_supplier():
     if request.method == 'POST':
         email = request.form["email"]
@@ -1108,7 +1115,7 @@ def reset_password(token):
 
 
 
-@views.route('/login_admin', methods=['GET', 'POST'])
+@views.route('/login-admin', methods=['GET', 'POST'])
 def login_admin():
     if request.method == 'POST':
         email = request.form["email"]
@@ -1134,7 +1141,7 @@ def login_admin():
 
 
 
-@views.route('/admin_signup', methods=['GET', 'POST'])
+@views.route('/admin-signup', methods=['GET', 'POST'])
 def admin_signup():
     if request.method == "POST":
         email = request.form['email']
@@ -1186,7 +1193,7 @@ def terms():
                            )
 
 
-@views.route('/privacy_policy', methods=['GET', 'POST'])
+@views.route('/privacy-policy', methods=['GET', 'POST'])
 def privacy():
     return render_template('privacy.html',
                            user = current_user
