@@ -367,54 +367,61 @@ def view_bid_details(bid_id):
 
     print('stage2')
 
-    if session['user_type'] is not None:
-        if session['user_type'] == 'supplier':
+    if 'user_type' in session:
+        if session['user_type'] is not None:
+            if session['user_type'] == 'supplier':
 
-            print('stage3')
+                print('stage3')
 
-            chat_history_records = chat_history.query \
-                .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
-                .all() # this is a list
+                chat_history_records = chat_history.query \
+                    .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
+                    .all() # this is a list
 
-            if chat_history_records:
-                central_tz = pytz.timezone('America/Chicago')
-                for message in chat_history_records:
-                    utc_datetime = message.datetime_stamp
-                    central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-                    message.datetime_stamp = central_datetime
-            else: # no chat history
-                chat_history_records = []
-                print('stage4')
+                if chat_history_records:
+                    central_tz = pytz.timezone('America/Chicago')
+                    for message in chat_history_records:
+                        utc_datetime = message.datetime_stamp
+                        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+                        message.datetime_stamp = central_datetime
+                else: # no chat history
+                    chat_history_records = []
+                    print('stage4')
 
-            has_applied = db.session.query(applicant_docs) \
-                .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
-                .first() is not None # returns true or false
+                has_applied = db.session.query(applicant_docs) \
+                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
+                    .first() is not None # returns true or false
 
-            if has_applied:
-                applied_status = 'applied'
-                print('stage9')
+                if has_applied:
+                    applied_status = 'applied'
+                    print('stage9')
 
-                applications_for_bid_and_supplier = db.session.query(applicant_docs) \
-                                    .filter_by(bid_id = bid_object.id) \
-                                    .filter_by(supplier_id = current_user.id) \
-                                    .all()
-                            
-            else: # supplier has not applied
+                    applications_for_bid_and_supplier = db.session.query(applicant_docs) \
+                                        .filter_by(bid_id = bid_object.id) \
+                                        .filter_by(supplier_id = current_user.id) \
+                                        .all()
+                                
+                else: # supplier has not applied
+                    applied_status = 'not applied'
+                    applications_for_bid_and_supplier = []
+                    print('stage5')
+
+            else: # user is admin
                 applied_status = 'not applied'
                 applications_for_bid_and_supplier = []
-                print('stage5')
+                chat_history_records = []
+                print('stage8')
 
-        else: # user is admin
+        else: # user is not logged in
             applied_status = 'not applied'
             applications_for_bid_and_supplier = []
             chat_history_records = []
-            print('stage8')
+            print('stage6')
 
-    else: # user is not logged in
+    else: # user_type key not in session
         applied_status = 'not applied'
         applications_for_bid_and_supplier = []
         chat_history_records = []
-        print('stage6')
+        print('stage10')
 
 
     print('stage7')
