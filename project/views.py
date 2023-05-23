@@ -344,75 +344,74 @@ def manage_project():
 
 @views.route('/view-bid-details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
-    with db.session() as db_session:
-        bid_object = db_session.query(bids) \
-                            .filter_by(id = bid_id) \
-                            .first()
+    bid_object = db.session.query(bids) \
+                        .filter_by(id = bid_id) \
+                        .first()
 
-        project_meta_records = db_session.query(project_meta) \
-                                        .filter_by(bid_id = bid_object.id) \
-                                        .all()
+    project_meta_records = db.session.query(project_meta) \
+                                    .filter_by(bid_id = bid_object.id) \
+                                    .all()
 
-        applications_for_bid = db_session.query(applicant_docs) \
-                                        .filter_by(bid_id = bid_object.id) \
-                                        .all()
+    applications_for_bid = db.session.query(applicant_docs) \
+                                    .filter_by(bid_id = bid_object.id) \
+                                    .all()
 
-        central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
-        for application in applications_for_bid:
-            utc_datetime = application.date_time_stamp
-            central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-            application.date_time_stamp = central_datetime
+    central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+    for application in applications_for_bid:
+        utc_datetime = application.date_time_stamp
+        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+        application.date_time_stamp = central_datetime
 
-        if 'user_type' in session:
-            if session['user_type'] == 'supplier':
+    if 'user_type' in session:
+        if session['user_type'] == 'supplier':
 
-                chat_history_records = chat_history.query \
-                    .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
-                    .all() # this is a list
+            chat_history_records = chat_history.query \
+                .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
+                .all() # this is a list
 
-                if chat_history_records:
-                    central_tz = pytz.timezone('America/Chicago')
-                    for message in chat_history_records:
-                        utc_datetime = message.datetime_stamp
-                        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-                        message.datetime_stamp = central_datetime
-                else: # no chat history
-                    chat_history_records = []
-
-                has_applied = db_session.query(applicant_docs) \
-                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
-                    .first() is not None # returns true or false
-
-                if has_applied:
-                    applied_status = 'applied'
-
-                    applications_for_bid_and_supplier = db_session.query(applicant_docs) \
-                                        .filter_by(bid_id = bid_object.id) \
-                                        .filter_by(supplier_id = current_user.id) \
-                                        .all()
-                              
-                else: # supplier has not applied
-                    applied_status = 'not applied'
-                    applications_for_bid_and_supplier = []
-
-            else: # user is admin
-                applied_status = 'not applied'
-                applications_for_bid_and_supplier = []
+            if chat_history_records:
+                central_tz = pytz.timezone('America/Chicago')
+                for message in chat_history_records:
+                    utc_datetime = message.datetime_stamp
+                    central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+                    message.datetime_stamp = central_datetime
+            else: # no chat history
                 chat_history_records = []
 
-        else: # user is not logged in
+            has_applied = db.session.query(applicant_docs) \
+                .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
+                .first() is not None # returns true or false
+
+            if has_applied:
+                applied_status = 'applied'
+
+                applications_for_bid_and_supplier = db.session.query(applicant_docs) \
+                                    .filter_by(bid_id = bid_object.id) \
+                                    .filter_by(supplier_id = current_user.id) \
+                                    .all()
+                            
+            else: # supplier has not applied
+                applied_status = 'not applied'
+                applications_for_bid_and_supplier = []
+
+        else: # user is admin
             applied_status = 'not applied'
             applications_for_bid_and_supplier = []
             chat_history_records = []
-        
-        return render_template('view_bid_details.html', 
-                                user = current_user,
-                                bid_object = bid_object,
-                                project_meta_records = project_meta_records,
-                                applications_for_bid = applications_for_bid,
-                                applied_status = applied_status,
-                                chat_history_records = chat_history_records,
-                                applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+
+    else: # user is not logged in
+        applied_status = 'not applied'
+        applications_for_bid_and_supplier = []
+        chat_history_records = []
+    
+    return render_template('view_bid_details.html', 
+                            user = current_user,
+                            bid_object = bid_object,
+                            project_meta_records = project_meta_records,
+                            applications_for_bid = applications_for_bid,
+                            applied_status = applied_status,
+                            chat_history_records = chat_history_records,
+                            applications_for_bid_and_supplier = applications_for_bid_and_supplier)
 
 
 
