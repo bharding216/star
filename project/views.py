@@ -367,7 +367,7 @@ def view_bid_details(bid_id):
 
     print('stage2')
 
-    if 'user_type' in session:
+    if session['user_type'] is not None:
         if session['user_type'] == 'supplier':
 
             print('stage3')
