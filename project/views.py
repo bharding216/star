@@ -357,6 +357,7 @@ def view_bid_details(bid_id):
                                     .all()
 
     print('stage1')
+    print(session)
 
     central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
     for application in applications_for_bid:
