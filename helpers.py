@@ -12,3 +12,5 @@ def generate_sitemap():
                 sitemap_xml += f'\t<url><loc>{url}</loc></url>\n'
         sitemap_xml += '</urlset>\n'
         return sitemap_xml
+    
+

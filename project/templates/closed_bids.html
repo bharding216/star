@@ -30,45 +30,61 @@
                 <div class="text-center">
                     <h1>Closed Bids</h1>
                     <p>A summary of the closed projects that are no longer accepting applications.</p>
-                    <br>
-                    <p>There are no closed bids at this time.</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!--
-<div>
-    <div class="container">
-        <table>
+
+<div class="pb-5">
+    <div class="container" style="overflow-x: auto;">
+
+        {% if closed_bids|length == 0 %}
+
+        <p class="text-center">There are no bids to display.</p>
+
+        {% else %}
+
+        <table style="margin: 0 auto">
             <thead>
                 <tr>
-                    <th class="text-center align-middle" scope="col">View Details</th>
-                    <th class="text-center align-middle" scope="col">Bid #</th>
-                    <th class="text-center align-middle" scope="col">Title</th>
-                    <th class="text-center align-middle" scope="col">Type</th>
-                    <th class="text-center align-middle" scope="col">Organization</th>
-                    <th class="text-center align-middle" scope="col">Issue Date</th>
-                    <th class="text-center align-middle" scope="col">Close Date</th>
+                    <th class="text-center align-middle" scope="col" style="width: 150px; padding-left: 10px;">Bid ID</th>
+                    <th class="text-center align-middle" scope="col" style="width: 300px; padding: 0px 20px;">Project Title</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Type</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Issue Date</th>
+                    <th class="text-center align-middle" scope="col" style="width: 200px; padding: 0px 20px;">Close Date/Time (Central)</th>
+                    <th class="text-center align-middle" scope="col" style="padding-right: 30px;">View</th>
                 </tr>
             </thead>
     
             <tbody>
+                {% for bid in closed_bids %}
                     <tr>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
-                        <td class="text-center align-middle">a</td>
+                        <td class="text-center align-middle" style="padding-left: 10px;">{{ bid.id }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.title }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.type }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.issue_date.strftime('%b-%d-%Y') }}</td>
+                        <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.close_date.strftime('%b-%d-%Y %I:%M %p') }}</td>
+                        <td class="text-center align-middle" style="padding-right: 40px;">
+                            <form action="{{ url_for('views.view_bid_details', bid_id = bid.id) }}" method="POST">
+                                <input type="hidden" name="project_title" value="{{ bid.title }}">
+                                <input type="hidden" name="bid_id" value="{{ bid.id }}">
+                                <button type="submit" 
+                                    class="btn btn-primary"
+                                    style="width:auto">
+                                    Select
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-
+                {% endfor %}
             </tbody>
         </table>
+
+        {% endif %}
+
     </div>
 </div>
--->
 
 {% endblock %}

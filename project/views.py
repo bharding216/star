@@ -119,7 +119,7 @@ def contact():
 
 
 
-@views.route('/registration_personal', methods=['GET', 'POST'])
+@views.route('/registration-personal', methods=['GET', 'POST'])
 def registration_personal():
     if request.method == 'POST':
         first_name = request.form['first_name']
@@ -155,7 +155,7 @@ def registration_personal():
                            )
 
 
-@views.route('/registration_location', methods=['GET', 'POST'])
+@views.route('/registration-location', methods=['GET', 'POST'])
 def registration_location():
     if request.method == "POST":
         address_1 = request.form['address_1']
@@ -177,7 +177,7 @@ def registration_location():
                            )
 
 
-@views.route('/registration_business', methods=['GET', 'POST'])
+@views.route('/registration-business', methods=['GET', 'POST'])
 def registration_business():
     if request.method == "POST":
         legal_structure = request.form['legal_structure']
@@ -266,7 +266,7 @@ def registration_business():
 
 
 
-@views.route('/manage_project', methods=['GET', 'POST'])
+@views.route('/manage-project', methods=['GET', 'POST'])
 @login_required
 def manage_project():
     if request.method == 'POST':
@@ -417,7 +417,7 @@ def view_bid_details(bid_id):
 
 
 
-@views.route('/post_chat_message', methods=['GET', 'POST'])
+@views.route('/post-chat-message', methods=['GET', 'POST'])
 @login_required
 def post_chat_message():
     message = request.form['message']
@@ -497,7 +497,7 @@ def applications_summary_page():
 
 
 
-@views.route('/view_application/<int:bid_id>/<int:supplier_id>', methods=['GET', 'POST'])
+@views.route('/view-application/<int:bid_id>/<int:supplier_id>', methods=['GET', 'POST'])
 @login_required
 def view_application(bid_id, supplier_id):
     with db.session() as db_session:
@@ -530,7 +530,7 @@ def view_application(bid_id, supplier_id):
 
 
 
-@views.route('/apply_for_bid', methods=['GET', 'POST'])
+@views.route('/apply-for-bid', methods=['GET', 'POST'])
 @login_required
 def apply_for_bid():
     if request.method == 'POST':
@@ -627,7 +627,7 @@ def apply_for_bid():
                                     )
 
 
-@views.route('/download_application_doc', methods = ['GET', 'POST'])
+@views.route('/download-application-doc', methods = ['GET', 'POST'])
 def download_application_doc():
     if request.method == 'POST':
         filename = request.form['filename']
@@ -662,7 +662,7 @@ def download_application_doc():
         return Response(BytesIO(response.content), headers=headers)
 
 
-@views.route('/delete_application_doc', methods = ['GET', 'POST'])
+@views.route('/delete-application-doc', methods = ['GET', 'POST'])
 @login_required
 def delete_application_doc():
     bid_id = request.form['bid_id']
@@ -711,7 +711,7 @@ def delete_application_doc():
 
 
 
-@views.route('/upload_doc', methods=['GET', 'POST'])
+@views.route('/upload-doc', methods=['GET', 'POST'])
 def upload_doc():
     if request.method == 'POST':
         bid_id = request.form['bid_id']
@@ -906,7 +906,7 @@ def delete_project():
 
 
 
-@views.route("/supplier-settings", methods=['GET', 'POST'])
+@views.route("/vendor-settings", methods=['GET', 'POST'])
 @login_required
 def supplier_settings():
     if request.method == 'POST':
@@ -920,7 +920,7 @@ def supplier_settings():
     return render_template('supplier_settings.html', user = current_user)
 
 
-@views.route("/update-supplier-settings/<string:field_name>", methods=['GET', 'POST'])
+@views.route("/update-vendor-settings/<string:field_name>", methods=['GET', 'POST'])
 @login_required
 def update_supplier_settings(field_name):
     if request.method == 'POST':
@@ -960,11 +960,23 @@ def update_supplier_settings(field_name):
 
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
-    with db.session() as db_session:
-        bid_list = db_session.query(bids).all()
+    open_bids_to_check = bids.query.filter(bids.status == 'open').all()
+
+    current_datetime = datetime.datetime.now()
+
+    bids_to_update = []
+    for bid in open_bids_to_check:
+        if bid.close_date < current_datetime: # close_date has passed
+            bid.status = 'closed'
+            bids_to_update.append(bid)
+
+    db.session.bulk_save_objects(bids_to_update)
+    db.session.commit()
+
+    open_bids = bids.query.filter(bids.status == 'open').all()
 
     return render_template('current_bids.html',
-                        bid_list = bid_list,
+                        open_bids = open_bids,
                         user = current_user
                         )
 
@@ -974,15 +986,25 @@ def current_bids():
 
 @views.route('/closed-bids', methods=['GET', 'POST'])
 def closed_bids():
+    closed_bids = bids.query.filter(bids.status == 'closed').all()
+
     return render_template('closed_bids.html',
+                           closed_bids = closed_bids,
                            user = current_user
                            )
 
+
+
 @views.route('/awarded-bids', methods=['GET', 'POST'])
 def awarded_bids():
+    awarded_bids = bids.query.filter(bids.status == 'awarded').all()
+
     return render_template('awarded_bids.html',
+                           awarded_bids = awarded_bids,
                            user = current_user
                            )
+
+
 
 @views.route('/bid-details', methods=['GET', 'POST'])
 def bid_details():
@@ -995,8 +1017,8 @@ def bid_details():
 
 
 
-@views.route('/login-supplier', methods=['GET', 'POST'])
-def login_supplier():
+@views.route('/login-vendor', methods=['GET', 'POST'])
+def login_vendor():
     if request.method == 'POST':
         email = request.form["email"]
         password = request.form["password"]
@@ -1012,11 +1034,11 @@ def login_supplier():
                 return redirect(url_for('views.index'))
             else:
                 flash('Incorrect password. Please try again.', category = 'error')
-                return redirect(url_for('views.login_supplier', email = email))
+                return redirect(url_for('views.login_vendor', email = email))
         else:
             flash('That email is not associated with an account.', category = 'error')
 
-    return render_template('login_supplier.html',
+    return render_template('login_vendor.html',
                            user = current_user
                            )
 

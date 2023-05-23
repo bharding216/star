@@ -29,8 +29,12 @@
                 <div class="text-center">
                     <h1>Current Bids</h1>
                     <p>A summary of the current projects that are accepting applications.</p>
-                    <br>
-                    <p><b>Your business must be registered with STAR to apply for a bid.</b></p>
+                    <p>
+                        <b>
+                            Your business must be 
+                            <a class="hover-link-blue" href="{{ url_for('views.registration_personal') }}">registered</a> with STAR to apply for a bid.
+                        </b>
+                    </p>
                 </div>
             </div>
         </div>
@@ -41,7 +45,7 @@
 <div class="pb-5">
     <div class="container" style="overflow-x: auto;">
 
-        {% if bid_list|length == 0 %}
+        {% if open_bids|length == 0 %}
 
         <p class="text-center">There are no bids to display.</p>
 
@@ -60,7 +64,7 @@
             </thead>
     
             <tbody>
-                {% for bid in bid_list %}
+                {% for bid in open_bids %}
                     <tr>
                         <td class="text-center align-middle" style="padding-left: 10px;">{{ bid.id }}</td>
                         <td class="text-center align-middle" style="width: 300px; padding: 0px 10px 0px 10px;">{{ bid.title }}</td>

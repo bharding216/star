@@ -199,7 +199,7 @@
 
 
 
-{% if user.is_authenticated and session['user_type'] == 'supplier' %}
+{% if user.is_authenticated and session['user_type'] == 'supplier' and bid_object.status == 'open' %}
 <div class="container my-5">
     <div class="row">
         <div class="col-12 col-lg-8">
@@ -323,39 +323,39 @@
 
 
 
-<div class="container my-5 py-5">
-    <div class="row">
-        <div class="col-12 d-flex justify-content-center">
-            <h4 class="mb-3">Delete Project and Attached Documents</h4>
+    <div class="container my-5 py-5">
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center">
+                <h4 class="mb-3">Delete Project and Attached Documents</h4>
+            </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12 d-flex justify-content-center">
-            <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDeleteProject()">
-                <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
-                <button type="submit" 
-                    class="btn btn-danger"
-                    style="width:auto">
-                    Delete
-                </button>
-            </form>
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center">
+                <form action="{{ url_for('views.delete_project') }}" method="POST" onsubmit="return confirmDeleteProject()">
+                    <input type="hidden" name="bid_id" value="{{ bid_object.id }}">
+                    <button type="submit" 
+                        class="btn btn-danger"
+                        style="width:auto">
+                        Delete
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 {% endif %}
 
 
 
 
 
-{% if not user.is_authenticated %}
+{% if not user.is_authenticated and bid_object.status == 'open' %}
 <div class="container my-5">
     <h4 class="mb-3">To apply for this bid, please 
         <a class="hover-link" href="{{ url_for('views.registration_personal') }}"
             target="_blank" rel="noopener noreferrer" id="create_acct_link">create an account</a> or
         <a class="hover-link" 
-            href="{{ url_for('views.login_supplier') }}"
+            href="{{ url_for('views.login_vendor') }}"
             target="_blank"
             rel="noopener noreferrer"
             id="create_acct_link">
@@ -422,7 +422,7 @@
 
 
 
-{% if user.is_authenticated and session['user_type'] == 'supplier' %}
+{% if user.is_authenticated and session['user_type'] == 'supplier' and bid_object.status == 'open' %}
 <div class="container mb-5">
     
     {% if applications_for_bid_and_supplier|length == 0 %}
