@@ -998,6 +998,12 @@ def closed_bids():
 def awarded_bids():
     awarded_bids = bids.query.filter(bids.status == 'awarded').all()
 
+    central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+    for application in awarded_bids:
+        utc_datetime = application.date_time_stamp
+        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+        application.date_time_stamp = central_datetime
+
     return render_template('awarded_bids.html',
                            awarded_bids = awarded_bids,
                            user = current_user
