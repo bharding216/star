@@ -89,6 +89,7 @@ def create_app():
                 user = None
             return user
 
+        #
         # @app.after_request
         # def add_cache_control(response):
         #     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
