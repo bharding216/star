@@ -356,14 +356,20 @@ def view_bid_details(bid_id):
                                     .filter_by(bid_id = bid_object.id) \
                                     .all()
 
+    print('stage1')
+
     central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
     for application in applications_for_bid:
         utc_datetime = application.date_time_stamp
         central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
         application.date_time_stamp = central_datetime
 
+    print('stage2')
+
     if 'user_type' in session:
         if session['user_type'] == 'supplier':
+
+            print('stage3')
 
             chat_history_records = chat_history.query \
                 .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
@@ -377,6 +383,7 @@ def view_bid_details(bid_id):
                     message.datetime_stamp = central_datetime
             else: # no chat history
                 chat_history_records = []
+                print('stage4')
 
             has_applied = db.session.query(applicant_docs) \
                 .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
@@ -393,6 +400,7 @@ def view_bid_details(bid_id):
             else: # supplier has not applied
                 applied_status = 'not applied'
                 applications_for_bid_and_supplier = []
+                print('stage5')
 
         else: # user is admin
             applied_status = 'not applied'
@@ -403,7 +411,10 @@ def view_bid_details(bid_id):
         applied_status = 'not applied'
         applications_for_bid_and_supplier = []
         chat_history_records = []
-    
+        print('stage6')
+
+
+    print('stage7')
     return render_template('view_bid_details.html', 
                             user = current_user,
                             bid_object = bid_object,
