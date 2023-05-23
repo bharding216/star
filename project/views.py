@@ -423,8 +423,9 @@ def view_bid_details(bid_id):
         chat_history_records = []
         print('stage10')
 
-
+    request_data = request.stream.read()
     print('stage7')
+
     return render_template('view_bid_details.html', 
                             user = current_user,
                             bid_object = bid_object,
