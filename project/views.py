@@ -392,6 +392,7 @@ def view_bid_details(bid_id):
 
             if has_applied:
                 applied_status = 'applied'
+                print('stage9')
 
                 applications_for_bid_and_supplier = db.session.query(applicant_docs) \
                                     .filter_by(bid_id = bid_object.id) \
@@ -407,6 +408,7 @@ def view_bid_details(bid_id):
             applied_status = 'not applied'
             applications_for_bid_and_supplier = []
             chat_history_records = []
+            print('stage8')
 
     else: # user is not logged in
         applied_status = 'not applied'
