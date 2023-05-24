@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for, \
-    session, send_file, jsonify, make_response, Response, send_from_directory
+    session, send_file, jsonify, make_response, Response, send_from_directory, current_app
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import and_
 from project.models import bids, bid_contact, admin_login, supplier_info, \
@@ -357,7 +357,7 @@ def view_bid_details(bid_id):
                                     .filter_by(bid_id = bid_object.id) \
                                     .all()
 
-    views.logger.info('bid_object: %s', bid_object)
+    current_app.logger.info('bid_object: %s', bid_object)
 
     central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
     for application in applications_for_bid:
