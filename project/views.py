@@ -357,7 +357,8 @@ def view_bid_details(bid_id):
                                     .filter_by(bid_id = bid_object.id) \
                                     .all()
 
-    current_app.logger.info('bid_object: %s', bid_object)
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.info('bid_object: %s', bid_object)
 
     central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
     for application in applications_for_bid:
