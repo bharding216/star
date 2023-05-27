@@ -357,6 +357,8 @@ def view_bid_details(bid_id):
                                     .filter_by(bid_id = bid_object.id) \
                                     .all()
 
+    vendor_chat_list = []
+    
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
     logging.info('bid_object: %s', bid_object)
 
