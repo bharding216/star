@@ -404,6 +404,13 @@ def view_bid_details(bid_id):
                 applications_for_bid_and_supplier = []
                 chat_history_records = []
 
+                distinct_supplier_ids = db.session.query(chat_history.supplier_id).distinct().all()
+                supplier_ids = [supplier_id for supplier_id, in distinct_supplier_ids]
+                supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
+                    filter(supplier_info.id.in_(supplier_ids)).all()
+                vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
+
+
         else: # user is not logged in
             applied_status = 'not applied'
             applications_for_bid_and_supplier = []
@@ -423,7 +430,8 @@ def view_bid_details(bid_id):
                             applications_for_bid = applications_for_bid,
                             applied_status = applied_status,
                             chat_history_records = chat_history_records,
-                            applications_for_bid_and_supplier = applications_for_bid_and_supplier)
+                            applications_for_bid_and_supplier = applications_for_bid_and_supplier,
+                            vendor_chat_list = vendor_chat_list)
 
 
 
@@ -433,7 +441,7 @@ def view_bid_details(bid_id):
 def post_chat_message():
     message = request.form['message']
     bid_id = request.form['bid_id']
-    supplier_id = request.form['supplier_id']
+    # supplier_id = request.form['supplier_id']
     now = datetime.datetime.utcnow()
     datetime_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -505,6 +513,23 @@ def applications_summary_page():
 
 
 
+@views.route('/view-vendor-chats/<int:bid_id>/<int:supplier_id>', methods=['GET', 'POST'])
+@login_required
+def view_vendor_chats(bid_id, supplier_id):
+    chat_history_records = chat_history.query \
+        .filter_by(supplier_id=supplier_id, bid_id=bid_id) \
+        .all()
+
+    central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+    for message in chat_history_records:
+        utc_datetime = message.datetime_stamp
+        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
+        message.datetime_stamp = central_datetime
+
+    return render_template('view_vendor_chats.html', 
+                            user = current_user,
+                            chat_history_records = chat_history_records,
+                            supplier_id = supplier_id)
 
 
 
