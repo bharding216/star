@@ -131,6 +131,18 @@ def registration_personal():
         password1 = request.form['password1']
         password2 = request.form['password2']
 
+        email_already_exists = db.session.query(db.exists().where(supplier_info.email == email)).scalar()
+        if email_already_exists:
+            flash('That email is already in use. Please use another email.', category='error')
+            return render_template('registration_personal.html',
+                                   user = current_user,
+                                   first_name = first_name,
+                                   last_name = last_name,
+                                   company_name = company_name,
+                                   email = email,
+                                   phone = phone
+                                   )
+
         if password1 != password2:
             flash('Passwords do not match. Please try again.', category='error')
             return render_template('registration_personal.html',
@@ -141,13 +153,13 @@ def registration_personal():
                                    email = email,
                                    phone = phone
                                    )
-        else:
-            session['first_name'] = first_name
-            session['last_name'] = last_name
-            session['company_name'] = company_name
-            session['email'] = email
-            session['phone'] = phone
-            session['password'] = generate_password_hash(password1)
+
+        session['first_name'] = first_name
+        session['last_name'] = last_name
+        session['company_name'] = company_name
+        session['email'] = email
+        session['phone'] = phone
+        session['password'] = generate_password_hash(password1)
 
         return redirect(url_for('views.registration_location'))
 
