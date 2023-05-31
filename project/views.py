@@ -201,31 +201,30 @@ def registration_business():
             ssn = request.form['ssn']
             session['ssn'] = ssn
 
-            with db.session() as db_session:
-                new_supplier_info_record = supplier_info(first_name = session['first_name'],
-                                                        last_name = session['last_name'],
-                                                        company_name = session['company_name'],
-                                                        email = session['email'],
-                                                        phone = session['phone'],
-                                                        address_1 = session['address_1'],
-                                                        address_2 = session['address_2'],
-                                                        city = session['city'],
-                                                        state = session['state'],
-                                                        zip_code = session['zip_code'],
-                                                        ssn = session['ssn'],
-                                                        legal_type = session['legal_structure']
-                                                        )
-                db_session.add(new_supplier_info_record)
-                db_session.commit()
-                
-                new_supplier_info_record_id = new_supplier_info_record.id
+            new_supplier_info_record = supplier_info(first_name = session['first_name'],
+                                                    last_name = session['last_name'],
+                                                    company_name = session['company_name'],
+                                                    email = session['email'],
+                                                    phone = session['phone'],
+                                                    address_1 = session['address_1'],
+                                                    address_2 = session['address_2'],
+                                                    city = session['city'],
+                                                    state = session['state'],
+                                                    zip_code = session['zip_code'],
+                                                    ssn = session['ssn'],
+                                                    legal_type = session['legal_structure']
+                                                    )
+            db.session.add(new_supplier_info_record)
+            db.session.commit()
+            
+            new_supplier_info_record_id = new_supplier_info_record.id
 
-                new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
-                                                        email = session['email'],
-                                                        password = session['password']
-                                                        )
-                db_session.add(new_supplier_login_record)
-                db_session.commit()
+            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
+                                                    email = session['email'],
+                                                    password = session['password']
+                                                    )
+            db.session.add(new_supplier_login_record)
+            db.session.commit()
 
         if radio_type == 'company':
             ein = request.form['ein']
@@ -233,33 +232,47 @@ def registration_business():
             session['ein'] = ein
             session['duns'] = duns
 
-            with db.session() as db_session:
-                new_supplier_info_record = supplier_info(first_name = session['first_name'],
-                                                        last_name = session['last_name'],
-                                                        company_name = session['company_name'],
-                                                        email = session['email'],
-                                                        phone = session['phone'],
-                                                        address_1 = session['address_1'],
-                                                        address_2 = session['address_2'],
-                                                        city = session['city'],
-                                                        state = session['state'],
-                                                        zip_code = session['zip_code'],
-                                                        ein = session['ein'],
-                                                        duns = session['duns'],
-                                                        legal_type = session['legal_structure']
-                                                        )
-            
-                db_session.add(new_supplier_info_record)
-                db_session.commit()
 
-                new_supplier_info_record_id = new_supplier_info_record.id
+            new_supplier_info_record = supplier_info(first_name = session['first_name'],
+                                                    last_name = session['last_name'],
+                                                    company_name = session['company_name'],
+                                                    email = session['email'],
+                                                    phone = session['phone'],
+                                                    address_1 = session['address_1'],
+                                                    address_2 = session['address_2'],
+                                                    city = session['city'],
+                                                    state = session['state'],
+                                                    zip_code = session['zip_code'],
+                                                    ein = session['ein'],
+                                                    duns = session['duns'],
+                                                    legal_type = session['legal_structure']
+                                                    )
+        
+            db.session.add(new_supplier_info_record)
+            db.session.commit()
 
-                new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
-                                                        email = session['email'],
-                                                        password = session['password']
-                                                        )
-                db_session.add(new_supplier_login_record)
-                db_session.commit()
+            new_supplier_info_record_id = new_supplier_info_record.id
+
+            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
+                                                    email = session['email'],
+                                                    password = session['password']
+                                                    )
+            db.session.add(new_supplier_login_record)
+            db.session.commit()
+
+        msg = Message('New Vendor Account Created',
+                        sender = ("STAR", 'hello@stxresources.org'),
+                        recipients = ['bharding80@gmail.com',
+                                      'CCallanen@wbpconsult.com'  
+                                    ]
+                        )
+
+        
+        msg.html = render_template('new_vendor_account_email.html',
+                                vendor_info = new_supplier_info_record
+                                )
+
+        mail.send(msg)
 
         flash('New supplier profile created! Please login using your email and password to \
               apply for open bids.', category='success')
@@ -653,7 +666,8 @@ def apply_for_bid():
 
             msg = Message('New Application Submission',
                             sender = ("STAR", 'hello@stxresources.org'),
-                            recipients = ['bharding80@gmail.com'
+                            recipients = ['bharding80@gmail.com',
+                                          'Micah@earl-law.com'
                                         ]
                             )
                                     #'Micah@earl-law.com'
