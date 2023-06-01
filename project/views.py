@@ -527,7 +527,7 @@ def post_chat_message():
 @login_required
 def applications_summary_page():
     with db.session() as db_session:
-        supplier_id = current_user.id
+        supplier_id = current_user.supplier_id
 
         bid_ids = [row.bid_id for row in applicant_docs.query.filter_by(supplier_id=supplier_id).all()]
     
