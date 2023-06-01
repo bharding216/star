@@ -482,7 +482,6 @@ def view_bid_details(bid_id):
 def post_chat_message():
     message = request.form['message']
     bid_id = request.form['bid_id']
-    # supplier_id = request.form['supplier_id']
     now = datetime.datetime.utcnow()
     datetime_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -494,6 +493,7 @@ def post_chat_message():
 
         elif session['user_type'] == 'admin':
             author_type = 'admin'
+            supplier_id = request.form['supplier_id']
 
             new_comment = chat_history(author_type = author_type, 
                                     datetime_stamp = datetime_stamp, 
