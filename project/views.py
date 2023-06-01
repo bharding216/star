@@ -305,7 +305,7 @@ def manage_project():
         bid_type = request.form['bid_type']
         organization = request.form['organization']
         issue_date = request.form['issue_date']
-        notes = request.form['notes']
+        scope = request.form['scope']
         
         close_date = request.form['close_date']
         close_time = request.form['close_time']
@@ -320,7 +320,7 @@ def manage_project():
             'organization': organization,
             'issue_date': issue_date,
             'close_date': datetime_obj,
-            'notes': notes,
+            'scope': scope,
             'status': 'open'
         }
 
