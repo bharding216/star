@@ -6,6 +6,7 @@ from project.models import bids, bid_contact, admin_login, supplier_info, \
     project_meta, supplier_login, applicant_docs, chat_history
 from datetime import datetime
 import pytz
+from dateutil import parser
 import datetime
 from flask_mail import Message
 from . import db, mail
@@ -713,13 +714,24 @@ def download_application_doc():
     if request.method == 'POST':
         filename = request.form['filename']
         date_time_stamp = request.form['date_time_stamp']
-        secure_date_time_stamp = secure_filename(date_time_stamp)
+
+        dt = parser.parse(date_time_stamp)
+        ct_timezone = pytz.timezone('America/Chicago')
+        ct_datetime = dt.astimezone(ct_timezone)
+        utc_datetime = ct_datetime.astimezone(pytz.utc)
+        utc_timestamp = utc_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+        secure_date_time_stamp = secure_filename(utc_timestamp)
 
         s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
         s3 = boto3.client('s3', region_name='us-east-1',
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        
+        logging.info('central_date_time_stamp: %s', date_time_stamp)
+        logging.info('utc_date_time_stamp: %s', utc_timestamp)
+        logging.info('s3_filename: %s', s3_filename)
 
         S3_BUCKET = 'star-uploads-bucket'
 
