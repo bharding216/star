@@ -533,6 +533,11 @@ def applications_summary_page():
     
         bid_list = bids.query.filter(bids.id.in_(bid_ids)).all()
 
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+        logging.info('supplier_id: %s', supplier_id)
+        logging.info('bid_ids: %s', bid_ids)
+        logging.info('bid_list: %s', bid_list)
+
         return render_template('applications_summary_page.html',
                             bid_list = bid_list,
                             user = current_user
@@ -1095,6 +1100,10 @@ def login_vendor():
         password = request.form["password"]
 
         user = supplier_login.query.filter_by(email = email).first()
+
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+        logging.info('email: %s', email)
+        logging.info('suppler_id: %s', user.supplier_id)
 
         if user:
             if check_password_hash(user.password, password):
