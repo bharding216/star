@@ -502,6 +502,8 @@ def post_chat_message():
                                     supplier_id = supplier_id
                                     )
             
+            logging.info('new_comment: %s', new_comment)
+
             db.session.add(new_comment)
             db.session.commit()
 
@@ -524,6 +526,8 @@ def post_chat_message():
                                 supplier_id = supplier_id
                                 )
         
+        logging.info('new_comment: %s', new_comment)
+
         db.session.add(new_comment)
         db.session.commit()
 
@@ -575,7 +579,8 @@ def view_vendor_chats(bid_id, supplier_id):
     return render_template('view_vendor_chats.html', 
                             user = current_user,
                             chat_history_records = chat_history_records,
-                            supplier_id = supplier_id)
+                            supplier_id = supplier_id,
+                            bid_id = bid_id)
 
 
 
