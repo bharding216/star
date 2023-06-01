@@ -285,6 +285,7 @@
 
 {% if user.is_authenticated and session['user_type'] == 'admin' %}
 
+    {% if applications_for_bid|length != 0 %}
     <div class="pb-5">
         <div class="container" style="overflow-x: auto;">
             <h4 class="mb-3">Vendor Chats</h4>
@@ -318,7 +319,6 @@
         </div>
     </div>    
 
-    {% if applications_for_bid|length != 0 %}
         <div class="pb-5">
             <div class="container" style="overflow-x: auto;">
                 <h4 class="mb-3">Applications Received</h4>
