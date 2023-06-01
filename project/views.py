@@ -406,7 +406,7 @@ def view_bid_details(bid_id):
             if session['user_type'] == 'supplier':
 
                 chat_history_records = chat_history.query \
-                    .filter_by(supplier_id=current_user.id, bid_id=bid_id) \
+                    .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
                     .all() # this is a list
 
                 if chat_history_records:
