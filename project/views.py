@@ -368,6 +368,10 @@ def manage_project():
                            )
 
 
+
+
+
+
 @views.route('/view-bid-details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
     bid_object = db.session.query(bids) \
@@ -386,6 +390,7 @@ def view_bid_details(bid_id):
     
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
     logging.info('bid_object: %s', bid_object)
+    logging.info('applications_for_bid: %s', applications_for_bid)
 
     central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
     for application in applications_for_bid:
@@ -411,7 +416,7 @@ def view_bid_details(bid_id):
                     chat_history_records = []
 
                 has_applied = db.session.query(applicant_docs) \
-                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.id)) \
+                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.supplier_id)) \
                     .first() is not None # returns true or false
 
                 if has_applied:
@@ -419,7 +424,7 @@ def view_bid_details(bid_id):
 
                     applications_for_bid_and_supplier = db.session.query(applicant_docs) \
                                         .filter_by(bid_id = bid_object.id) \
-                                        .filter_by(supplier_id = current_user.id) \
+                                        .filter_by(supplier_id = current_user.supplier_id) \
                                         .all()
                                 
                 else: # supplier has not applied
@@ -450,6 +455,11 @@ def view_bid_details(bid_id):
 
     request_data = request.stream.read()
 
+    logging.info('applied_status: %s', applied_status)
+    logging.info('applications_for_bid_and_supplier: %s', applications_for_bid_and_supplier)
+    logging.info('chat_history_records: %s', chat_history_records)
+    logging.info('session_user_type: %s', session['user_type'])
+
     return render_template('view_bid_details.html', 
                             user = current_user,
                             bid_object = bid_object,
@@ -459,6 +469,8 @@ def view_bid_details(bid_id):
                             chat_history_records = chat_history_records,
                             applications_for_bid_and_supplier = applications_for_bid_and_supplier,
                             vendor_chat_list = vendor_chat_list)
+
+
 
 
 
