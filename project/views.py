@@ -400,6 +400,8 @@ def view_bid_details(bid_id):
         application.date_time_stamp = central_datetime
 
     if 'user_type' in session:
+        logging.info('session_user_type: %s', session['user_type'])
+
         if session['user_type'] is not None:
             if session['user_type'] == 'supplier':
 
@@ -459,7 +461,6 @@ def view_bid_details(bid_id):
     logging.info('applied_status: %s', applied_status)
     logging.info('applications_for_bid_and_supplier: %s', applications_for_bid_and_supplier)
     logging.info('chat_history_records: %s', chat_history_records)
-    logging.info('session_user_type: %s', session['user_type'])
 
     return render_template('view_bid_details.html', 
                             user = current_user,
