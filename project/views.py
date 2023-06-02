@@ -628,9 +628,9 @@ def apply_for_bid():
         supplier_id = current_user.supplier_id
         now = datetime.datetime.utcnow()
 
-        if close_date < now:
-            flash('The close date for this bid has passed.', category='error')
-            return redirect(url_for('views.view_bid_details', bid_id=bid_id))
+        # if close_date < now:
+        #     flash('The close date for this bid has passed.', category='error')
+        #     return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
         secure_date_time_stamp = secure_filename(date_time_stamp)
