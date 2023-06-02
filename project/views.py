@@ -1059,18 +1059,18 @@ def update_supplier_settings(field_name):
 
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
-    open_bids_to_check = bids.query.filter(bids.status == 'open').all()
+    # open_bids_to_check = bids.query.filter(bids.status == 'open').all()
 
-    current_datetime = datetime.datetime.now()
+    # current_datetime = datetime.datetime.now()
 
-    bids_to_update = []
-    for bid in open_bids_to_check:
-        if bid.close_date < current_datetime: # close_date has passed
-            bid.status = 'closed'
-            bids_to_update.append(bid)
+    # bids_to_update = []
+    # for bid in open_bids_to_check:
+    #     if bid.close_date < current_datetime: # close_date has passed
+    #         bid.status = 'closed'
+    #         bids_to_update.append(bid)
 
-    db.session.bulk_save_objects(bids_to_update)
-    db.session.commit()
+    # db.session.bulk_save_objects(bids_to_update)
+    # db.session.commit()
 
     open_bids = bids.query.filter(bids.status == 'open').all()
 
