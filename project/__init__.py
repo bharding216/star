@@ -73,7 +73,7 @@ def create_app():
 
         db.create_all()
 
-        login_manager.login_view = "views.login"
+        login_manager.login_view = "views.login_vendor"
         login_manager.login_message = ""
         login_manager.login_message_category = "error"
         login_manager.init_app(app)

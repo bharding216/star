@@ -690,11 +690,11 @@ def apply_for_bid():
 
             msg = Message('New Application Submission',
                             sender = ("STAR", 'hello@stxresources.org'),
-                            recipients = ['bharding80@gmail.com',
-                                          'Micah@earl-law.com'
+                            recipients = ['bharding80@gmail.com'
+                                          #'Micah@earl-law.com'
                                         ]
                             )
-                                    #'Micah@earl-law.com'
+
             
             msg.html = render_template('new_application_email.html',
                                     bid_object = bid_object,
@@ -713,6 +713,9 @@ def apply_for_bid():
                                     applications_for_bid = applications_for_bid,
                                     supplier_object = supplier_object
                                     )
+    else:
+        logging.info('User trying to send a GET request to "apply-for-bid" view function.')
+        return 'This URL only accepts POST requests. Please return to the STAR homepage.'
 
 
 @views.route('/download-application-doc', methods = ['GET', 'POST'])
