@@ -404,6 +404,10 @@ def view_bid_details(bid_id):
 
         if session['user_type'] is not None:
             if session['user_type'] == 'supplier':
+                try:
+                    logging.info('supplier_id: %s', current_user.supplier_id)
+                except:
+                    logging.info('supplier_id: UNKNOWN')
 
                 chat_history_records = chat_history.query \
                     .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
@@ -627,6 +631,9 @@ def apply_for_bid():
         close_date = bid.close_date
         supplier_id = current_user.supplier_id
         now = datetime.datetime.utcnow()
+
+        logging.info('close_date: %s', close_date)
+        logging.info('current_datetime: %s', now)
 
         # if close_date < now:
         #     flash('The close date for this bid has passed.', category='error')
