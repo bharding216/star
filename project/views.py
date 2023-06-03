@@ -628,14 +628,14 @@ def apply_for_bid():
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
         bid = bids.query.get(bid_id)
-        close_date = bid.close_date
+        close_date_utc = bid.close_date
         supplier_id = current_user.supplier_id
         now = datetime.datetime.utcnow()
 
-        logging.info('close_date: %s', close_date)
-        logging.info('current_datetime: %s', now)
+        logging.info('close_date_utc: %s', close_date_utc)
+        logging.info('current_datetime_utc: %s', now)
 
-        # if close_date < now:
+        # if close_date_utc < now:
         #     flash('The close date for this bid has passed.', category='error')
         #     return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
@@ -1070,12 +1070,14 @@ def update_supplier_settings(field_name):
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
     # open_bids_to_check = bids.query.filter(bids.status == 'open').all()
+        # logging.info('open_bids_to_check: %s', open_bids_to_check)
 
-    # current_datetime = datetime.datetime.now()
+    # current_datetime_utc = datetime.datetime.now()
+        # logging.info('current_datetime_utc: %s', current_datetime_utc)
 
     # bids_to_update = []
     # for bid in open_bids_to_check:
-    #     if bid.close_date < current_datetime: # close_date has passed
+    #     if bid.close_date < current_datetime_utc: # close_date has passed
     #         bid.status = 'closed'
     #         bids_to_update.append(bid)
 
