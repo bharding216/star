@@ -7,6 +7,7 @@ from flask_mail import Mail
 import os
 from helpers import generate_sitemap
 from dotenv import load_dotenv
+import logging
 
 
 db = SQLAlchemy()
@@ -98,5 +99,7 @@ def create_app():
             # Ensure that all requests are secure (HTTPS)
             if not request.is_secure and request.host != 'localhost:2000':
                 return redirect(request.url.replace('http://', 'https://'), code=301)
+
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
         return app

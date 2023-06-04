@@ -10,7 +10,7 @@ from dateutil import parser
 import datetime
 from flask_mail import Message
 from . import db, mail
-from helpers import generate_sitemap
+from helpers import generate_sitemap, utc_to_central
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from itsdangerous.exc import BadSignature
@@ -309,9 +309,15 @@ def manage_project():
         notes = request.form['notes']
         
         close_date = request.form['close_date']
-        close_time = request.form['close_time']
-        datetime_str = close_date + ' ' + close_time
-        datetime_obj = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+        close_time_central = request.form['close_time']
+        datetime_str = close_date + ' ' + close_time_central
+        datetime_obj_central = datetime.datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+
+        central_timezone = pytz.timezone('US/Central')
+        datetime_obj_central_localized = central_timezone.localize(datetime_obj_central)
+
+        utc_timezone = pytz.timezone('UTC')
+        datetime_obj_utc = datetime_obj_central_localized.astimezone(utc_timezone)
 
         # First, create a new project record. Get the project record ID, then
         # use that ID to create a 'project_meta' record for each file that was uploaded.
@@ -320,7 +326,7 @@ def manage_project():
             'type': bid_type,
             'organization': organization,
             'issue_date': issue_date,
-            'close_date': datetime_obj,
+            'close_date': datetime_obj_utc,
             'notes': notes,
             'status': 'open'
         }
@@ -378,6 +384,10 @@ def view_bid_details(bid_id):
     bid_object = db.session.query(bids) \
                         .filter_by(id = bid_id) \
                         .first()
+    if bid_object:
+        close_date_utc = bid_object.close_date
+        close_date_central = utc_to_central(close_date_utc)
+        bid_object.close_date = close_date_central
 
     project_meta_records = db.session.query(project_meta) \
                                     .filter_by(bid_id = bid_object.id) \
@@ -389,15 +399,15 @@ def view_bid_details(bid_id):
 
     vendor_chat_list = []
     
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
     logging.info('bid_object: %s', bid_object)
     logging.info('applications_for_bid: %s', applications_for_bid)
 
-    central_tz = pytz.timezone('America/Chicago')  # Set the timezone to Central Time
+
     for application in applications_for_bid:
-        utc_datetime = application.date_time_stamp
-        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-        application.date_time_stamp = central_datetime
+        application_submitted_datetime_utc = application.date_time_stamp
+        application_submitted_datetime_central = utc_to_central(application_submitted_datetime_utc)
+        application.date_time_stamp = application_submitted_datetime_central
+
 
     if 'user_type' in session:
         logging.info('session_user_type: %s', session['user_type'])
@@ -411,14 +421,13 @@ def view_bid_details(bid_id):
 
                 chat_history_records = chat_history.query \
                     .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
-                    .all() # this is a list
+                    .all()
 
                 if chat_history_records:
-                    central_tz = pytz.timezone('America/Chicago')
                     for message in chat_history_records:
-                        utc_datetime = message.datetime_stamp
-                        central_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(central_tz)
-                        message.datetime_stamp = central_datetime
+                        chat_timestamp_utc = message.datetime_stamp
+                        chat_timestamp_central = utc_to_central(chat_timestamp_utc)
+                        message.datetime_stamp = chat_timestamp_central
                 else: # no chat history
                     chat_history_records = []
 
@@ -553,9 +562,13 @@ def applications_summary_page():
 
         bid_ids = [row.bid_id for row in applicant_docs.query.filter_by(supplier_id=supplier_id).all()]
     
-        bid_list = bids.query.filter(bids.id.in_(bid_ids)).all()
+        bid_list = bids.query.filter(bids.id.in_(bid_ids)).all() # list of bid objects
 
-        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+        for bid in bid_list:
+            close_date_utc = bid.close_date
+            close_date_central = utc_to_central(close_date_utc)
+            bid.close_date = close_date_central
+
         logging.info('supplier_id: %s', supplier_id)
         logging.info('bid_ids: %s', bid_ids)
         logging.info('bid_list: %s', bid_list)
@@ -634,10 +647,12 @@ def apply_for_bid():
 
         logging.info('close_date_utc: %s', close_date_utc)
         logging.info('current_datetime_utc: %s', now)
+        logging.info('supplier_id: %s', supplier_id)
+        logging.info('bid object: %s', bid)
 
-        # if close_date_utc < now:
-        #     flash('The close date for this bid has passed.', category='error')
-        #     return redirect(url_for('views.view_bid_details', bid_id=bid_id))
+        if close_date_utc < now: # all times in UTC
+            flash('The close date for this bid has passed.', category='error')
+            return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
         secure_date_time_stamp = secure_filename(date_time_stamp)
@@ -1069,22 +1084,27 @@ def update_supplier_settings(field_name):
 
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
-    # open_bids_to_check = bids.query.filter(bids.status == 'open').all()
-        # logging.info('open_bids_to_check: %s', open_bids_to_check)
+    open_bids_to_check = bids.query.filter(bids.status == 'open').all()
+    logging.info('open_bids_to_check: %s', open_bids_to_check)
 
-    # current_datetime_utc = datetime.datetime.now()
-        # logging.info('current_datetime_utc: %s', current_datetime_utc)
+    current_datetime_utc = datetime.datetime.now()
+    logging.info('current_datetime_utc: %s', current_datetime_utc)
 
-    # bids_to_update = []
-    # for bid in open_bids_to_check:
-    #     if bid.close_date < current_datetime_utc: # close_date has passed
-    #         bid.status = 'closed'
-    #         bids_to_update.append(bid)
+    bids_to_update = []
+    for bid in open_bids_to_check:
+        if bid.close_date < current_datetime_utc: # close_date has passed
+            bid.status = 'closed'
+            bids_to_update.append(bid)
 
-    # db.session.bulk_save_objects(bids_to_update)
-    # db.session.commit()
+    db.session.bulk_save_objects(bids_to_update)
+    db.session.commit()
 
     open_bids = bids.query.filter(bids.status == 'open').all()
+
+    for bid in open_bids:
+        close_date_utc = bid.close_date
+        close_date_central = utc_to_central(close_date_utc)
+        bid.close_date = close_date_central
 
     return render_template('current_bids.html',
                         open_bids = open_bids,
@@ -1099,6 +1119,11 @@ def current_bids():
 def closed_bids():
     closed_bids = bids.query.filter(bids.status == 'closed').all()
 
+    for bid in closed_bids:
+        close_date_utc = bid.close_date
+        close_date_central = utc_to_central(close_date_utc)
+        bid.close_date = close_date_central
+
     return render_template('closed_bids.html',
                            closed_bids = closed_bids,
                            user = current_user
@@ -1110,6 +1135,11 @@ def closed_bids():
 def awarded_bids():
 
     awarded_bids = bids.query.filter(bids.status == 'awarded').all()
+
+    for bid in awarded_bids:
+        close_date_utc = bid.close_date
+        close_date_central = utc_to_central(close_date_utc)
+        bid.close_date = close_date_central
 
     return render_template('awarded_bids.html',
                            awarded_bids = awarded_bids,
@@ -1134,7 +1164,6 @@ def bid_details():
 
 
 
-
 @views.route('/login-vendor', methods=['GET', 'POST'])
 def login_vendor():
     if request.method == 'POST':
@@ -1143,7 +1172,6 @@ def login_vendor():
 
         user = supplier_login.query.filter_by(email = email).first()
 
-        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
         logging.info('email: %s', email)
         logging.info('suppler_id: %s', user.supplier_id)
 
