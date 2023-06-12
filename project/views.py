@@ -197,10 +197,16 @@ def registration_business():
         legal_structure = request.form['legal_structure']
         session['legal_structure'] = legal_structure
 
+        current_time = datetime.datetime.now().time()
+        current_time_str = current_time.strftime('%H:%M:%S')
+        s = URLSafeSerializer(os.getenv('secret_key'))
+
         radio_type = request.form['radio_type']
         if radio_type == 'individual':
             ssn = request.form['ssn']
-            session['ssn'] = ssn
+            ssn_serialized = s.dumps([ssn, current_time_str])
+            session['ssn'] = ssn_serialized
+            logging.info('ssn_serialized: %s', ssn_serialized)
 
             new_supplier_info_record = supplier_info(first_name = session['first_name'],
                                                     last_name = session['last_name'],
@@ -224,14 +230,26 @@ def registration_business():
                                                     email = session['email'],
                                                     password = session['password']
                                                     )
+            logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_login_record)
             db.session.commit()
 
         if radio_type == 'company':
             ein = request.form['ein']
+            if ein:
+                ein_serialized = s.dumps([ein, current_time_str])
+                session['ein'] = ein_serialized
+                session['duns'] = ""
+                logging.info('serialized_ein: %s', ein_serialized)
+                logging.info('duns record is not applicable for this user')
+
             duns = request.form['duns']
-            session['ein'] = ein
-            session['duns'] = duns
+            if duns:
+                duns_serialized = s.dumps([duns, current_time_str])
+                session['duns'] = duns_serialized
+                session['ein'] = ""
+                logging.info('serialized_duns: %s', duns_serialized)
+                logging.info('ein record is not applicable for this user')
 
 
             new_supplier_info_record = supplier_info(first_name = session['first_name'],
@@ -248,7 +266,7 @@ def registration_business():
                                                     duns = session['duns'],
                                                     legal_type = session['legal_structure']
                                                     )
-        
+            logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_info_record)
             db.session.commit()
 
@@ -369,10 +387,15 @@ def manage_project():
     with db.session() as db_session:
         bid_list = db_session.query(bids).all()
 
-    return render_template('manage_project.html',
-                           user = current_user,
-                           bid_list = bid_list
-                           )
+        for bid in bid_list:
+            close_date_utc = bid.close_date
+            close_date_central = utc_to_central(close_date_utc)
+            bid.close_date = close_date_central
+
+        return render_template('manage_project.html',
+                            user = current_user,
+                            bid_list = bid_list
+                            )
 
 
 
@@ -457,6 +480,7 @@ def view_bid_details(bid_id):
                 supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
                     filter(supplier_info.id.in_(supplier_ids)).all()
                 vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
+                logging.info('vendor_chat_list: %s', vendor_chat_list)
 
 
         else: # user is not logged in
@@ -1163,19 +1187,21 @@ def login_vendor():
 
         user = supplier_login.query.filter_by(email = email).first()
 
-        logging.info('email: %s', email)
-        logging.info('suppler_id: %s', user.supplier_id)
-
         if user:
+            logging.info('user trying to log in with email: %s', email)
+
             if check_password_hash(user.password, password):
                 login_user(user, remember = True)
                 session['user_type'] = 'supplier'
+                logging.info('suppler_id: %s', user.supplier_id)
                 session.permanent = True
                 flash('Login successful!', category = 'success')
                 return redirect(url_for('views.index'))
             else:
                 flash('Incorrect password. Please try again.', category = 'error')
-                return redirect(url_for('views.login_vendor', email = email))
+                return render_template('login_vendor.html',
+                                       email = email,
+                                       user = current_user)
         else:
             flash('That email is not associated with an account.', category = 'error')
 
