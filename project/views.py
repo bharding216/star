@@ -740,7 +740,7 @@ def apply_for_bid():
                                         .first()
 
         admin_msg = Message('New Application Submitted',
-                        sender = ("SE Legacy", 'hello@stxresources.org'),
+                        sender = ("STAR", 'hello@stxresources.org'),
                         recipients = ['bharding80@gmail.com'
                                     ]
                         )
@@ -753,7 +753,7 @@ def apply_for_bid():
         mail.send(admin_msg)
 
         msg_to_vendor = Message('Thank You For Applying',
-                        sender = ("SE Legacy", 'hello@stxresources.org'),
+                        sender = ("STAR", 'hello@stxresources.org'),
                         recipients = [supplier_object.email
                                     ]
                         )
