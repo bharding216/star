@@ -758,7 +758,7 @@ def apply_for_bid():
                                     ]
                         )
 
-        msg_to_vendor.html = render_template('new_application_email.html',
+        msg_to_vendor.html = render_template('new_app_email_to_vendor.html',
                                 bid_object = bid_object,
                                 supplier_object = supplier_object
                                 )
