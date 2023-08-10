@@ -460,86 +460,74 @@ def view_bid_details(bid_id):
                                     .filter_by(bid_id = bid_object.id) \
                                     .all()
 
-    applications_for_bid = db.session.query(applicant_docs) \
-                                    .filter_by(bid_id = bid_object.id) \
-                                    .all()
-
-    vendor_chat_list = []
-    
     logging.info('BID OBJECT: %s', bid_object)
     logging.info('PROJECT META RECORDS: %s', project_meta_records)
-    logging.info('APPLICATIONS FOR THIS BID: %s', applications_for_bid)
 
-    for application in applications_for_bid:
-        application_submitted_datetime_utc = application.date_time_stamp
-        application_submitted_datetime_central = utc_to_central(application_submitted_datetime_utc)
-        application.date_time_stamp = application_submitted_datetime_central
+    if 'user_type' not in session or session.get('user_type') is None:
+        logging.info('USER TYPE NOT IN SESSION')
+        applied_status = 'not applied - undefined user type'
+        applications_for_bid_and_supplier = []
+        chat_history_records = []
+        vendor_chat_list = []
+        applications_for_bid = []
 
-
-    if 'user_type' in session:
-        logging.info('SESSION USER_TYPE: %s', session['user_type'])
-
-        if session['user_type'] is not None:
-            if session['user_type'] == 'supplier':
-                try:
-                    logging.info('SUPPLIER ID: %s', current_user.supplier_id)
-                except:
-                    logging.info('SUPPLIER ID: UNKNOWN')
-
-                chat_history_records = chat_history.query \
-                    .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
-                    .all()
-
-                if chat_history_records:
-                    for message in chat_history_records:
-                        chat_timestamp_utc = message.datetime_stamp
-                        chat_timestamp_central = utc_to_central(chat_timestamp_utc)
-                        message.datetime_stamp = chat_timestamp_central
-                else: # no chat history
-                    chat_history_records = []
-
-                has_applied = db.session.query(applicant_docs) \
-                    .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.supplier_id)) \
-                    .first() is not None # returns true or false
-
-                if has_applied:
-                    applied_status = 'applied'
-
-                    applications_for_bid_and_supplier = db.session.query(applicant_docs) \
+    elif session.get('user_type') == 'admin':
+        applications_for_bid = db.session.query(applicant_docs) \
                                         .filter_by(bid_id = bid_object.id) \
-                                        .filter_by(supplier_id = current_user.supplier_id) \
                                         .all()
-                                
-                else: # supplier has not applied
-                    applied_status = 'not applied'
-                    applications_for_bid_and_supplier = []
 
-            else: # user is admin
-                applied_status = 'not applied'
-                applications_for_bid_and_supplier = []
-                chat_history_records = []
-
-                distinct_supplier_ids = db.session.query(chat_history.supplier_id).distinct().all()
-                supplier_ids = [supplier_id for supplier_id, in distinct_supplier_ids]
-                supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
-                    filter(supplier_info.id.in_(supplier_ids)).all()
-                vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
-                logging.info('VENDOR CHAT LIST: %s', vendor_chat_list)
-
-
-        else: # user is not logged in
-            applied_status = 'not applied'
-            applications_for_bid_and_supplier = []
-            chat_history_records = []
-
-    else: # user_type key not in session
-        applied_status = 'not applied'
+        applied_status = 'not applied - user type is admin'
         applications_for_bid_and_supplier = []
         chat_history_records = []
 
+        distinct_supplier_ids = db.session.query(chat_history.supplier_id).distinct().all()
+        supplier_ids = [supplier_id for supplier_id, in distinct_supplier_ids]
+        supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
+                                                filter(supplier_info.id.in_(supplier_ids)).all()
+        vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
+        logging.info('VENDOR CHATS AVAILABLE FOR THIS BID: %s', vendor_chat_list)
+
+    elif session.get('user_type') == 'supplier':
+        logging.info('SUPPLIER ID: %s', current_user.supplier_id)
+        applications_for_bid = []
+        vendor_chat_list = []
+
+        chat_history_records = chat_history.query \
+            .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
+            .all()
+        
+        if not chat_history_records:
+            chat_history_records = []
+        else:
+            for message in chat_history_records:
+                chat_timestamp_utc = message.datetime_stamp
+                chat_timestamp_central = utc_to_central(chat_timestamp_utc)
+                message.datetime_stamp = chat_timestamp_central
+
+
+        vendor_has_applied = db.session.query(applicant_docs) \
+            .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.supplier_id)) \
+            .first() is not None # returns true or false
+
+        if vendor_has_applied:
+            applied_status = 'applied'
+
+            applications_for_bid_and_supplier = db.session.query(applicant_docs) \
+                                .filter_by(bid_id = bid_object.id) \
+                                .filter_by(supplier_id = current_user.supplier_id) \
+                                .all()
+        else:
+            applied_status = 'not applied'
+            applications_for_bid_and_supplier = []
+
+    else:
+        logging.info('WARNING: UNDEFINED USER TYPE')
+        return 'Undefined user type. Please contact us so we can help resolve this error!'
+
+
     request_data = request.stream.read()
 
-    logging.info('HAS THE VENDOR APPLIED TO THIS BID: %s', applied_status)
+    logging.info('APPLIED STATUS: %s', applied_status)
     logging.info('APPLICATIONS FOR BID AND SUPPLIER: %s', applications_for_bid_and_supplier)
     logging.info('CHAT HISTORY RECORDS: %s', chat_history_records)
 
@@ -552,6 +540,101 @@ def view_bid_details(bid_id):
                             chat_history_records = chat_history_records,
                             applications_for_bid_and_supplier = applications_for_bid_and_supplier,
                             vendor_chat_list = vendor_chat_list)
+
+    # RE-WROTE THE CODE BELOW FOR CLARITY. DELETE THESE COMMENTS ONCE YOU TEST THE CODE ABOVE.
+    # applications_for_bid = db.session.query(applicant_docs) \
+    #                                 .filter_by(bid_id = bid_object.id) \
+    #                                 .all()
+
+    # vendor_chat_list = []
+    
+
+    # logging.info('APPLICATIONS FOR THIS BID: %s', applications_for_bid)
+
+    # for application in applications_for_bid:
+    #     application_submitted_datetime_utc = application.date_time_stamp
+    #     application_submitted_datetime_central = utc_to_central(application_submitted_datetime_utc)
+    #     application.date_time_stamp = application_submitted_datetime_central
+
+
+    # if 'user_type' in session:
+    #     logging.info('SESSION USER_TYPE: %s', session['user_type'])
+
+    #     if session['user_type'] is not None:
+    #         logging.info('SESSION USER_TYPE IS NOT NONE')
+
+    #         if session['user_type'] == 'supplier':
+    #             try:
+    #                 logging.info('SUPPLIER ID: %s', current_user.supplier_id)
+    #             except:
+    #                 logging.info('SUPPLIER ID: UNKNOWN')
+
+    #             chat_history_records = chat_history.query \
+    #                 .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
+    #                 .all()
+
+    #             if chat_history_records:
+    #                 for message in chat_history_records:
+    #                     chat_timestamp_utc = message.datetime_stamp
+    #                     chat_timestamp_central = utc_to_central(chat_timestamp_utc)
+    #                     message.datetime_stamp = chat_timestamp_central
+    #             else: # no chat history
+    #                 chat_history_records = []
+
+    #             has_applied = db.session.query(applicant_docs) \
+    #                 .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.supplier_id)) \
+    #                 .first() is not None # returns true or false
+
+    #             if has_applied:
+    #                 applied_status = 'applied'
+
+    #                 applications_for_bid_and_supplier = db.session.query(applicant_docs) \
+    #                                     .filter_by(bid_id = bid_object.id) \
+    #                                     .filter_by(supplier_id = current_user.supplier_id) \
+    #                                     .all()
+                                
+    #             else: # supplier has not applied
+    #                 applied_status = 'not applied'
+    #                 applications_for_bid_and_supplier = []
+
+    #         else: # user is admin
+    #             applied_status = 'not applied'
+    #             applications_for_bid_and_supplier = []
+    #             chat_history_records = []
+
+    #             distinct_supplier_ids = db.session.query(chat_history.supplier_id).distinct().all()
+    #             supplier_ids = [supplier_id for supplier_id, in distinct_supplier_ids]
+    #             supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
+    #                 filter(supplier_info.id.in_(supplier_ids)).all()
+    #             vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
+    #             logging.info('VENDOR CHAT LIST: %s', vendor_chat_list)
+
+
+    #     else: # user is not logged in
+    #         applied_status = 'not applied'
+    #         applications_for_bid_and_supplier = []
+    #         chat_history_records = []
+
+    # else: # user_type key not in session
+    #     applied_status = 'not applied'
+    #     applications_for_bid_and_supplier = []
+    #     chat_history_records = []
+
+    # request_data = request.stream.read()
+
+    # logging.info('HAS THE VENDOR APPLIED TO THIS BID: %s', applied_status)
+    # logging.info('APPLICATIONS FOR BID AND SUPPLIER: %s', applications_for_bid_and_supplier)
+    # logging.info('CHAT HISTORY RECORDS: %s', chat_history_records)
+
+    # return render_template('view_bid_details.html', 
+    #                         user = current_user,
+    #                         bid_object = bid_object,
+    #                         project_meta_records = project_meta_records,
+    #                         applications_for_bid = applications_for_bid,
+    #                         applied_status = applied_status,
+    #                         chat_history_records = chat_history_records,
+    #                         applications_for_bid_and_supplier = applications_for_bid_and_supplier,
+    #                         vendor_chat_list = vendor_chat_list)
 
 
 
