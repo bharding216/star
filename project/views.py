@@ -970,6 +970,7 @@ def delete_application_doc():
     supplier_id = current_user.supplier.id
 
     s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
+    logging.info('S3 FILENAME: %s', s3_filename)
 
     s3 = boto3.client('s3', region_name='us-east-1',
                     aws_access_key_id=os.getenv('s3_access_key_id'),
@@ -977,7 +978,12 @@ def delete_application_doc():
 
     S3_BUCKET = 'star-uploads-bucket'
 
-    s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
+    try:
+        s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
+        logging.info('S3 OBJECT DELETED: %s', s3_filename)
+    except Exception as e:
+        logging.error('FAILED TO DELETE S3 OBJECT: %s', s3_filename)
+        logging.error(str(e))
 
     with db.session() as db_session:
         record_to_delete = db_session.query(applicant_docs).get(doc_id)
