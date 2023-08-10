@@ -798,13 +798,17 @@ def apply_for_bid():
         close_date_utc = bid.close_date
 
         logging.info('VENDOR TRYING TO UPLOAD THESE FILES: %s', files)
+        logging.info('BID ID: %s', bid_id)
 
         if 'user_type' in session:
             logging.info('SESSION USER_TYPE: %s', session['user_type'])
+        else:
+            logging.info('WARNING: USER TYPE NOT IN SESSION')
+            return 'We seem to be having an issue confirming your user log in credentials. Please contact us if you continue having issues.'
 
         if current_user.supplier_id:
             supplier_id = current_user.supplier_id
-            logging.info('VENDOR ID: %s', supplier_id)
+            logging.info('SUPPLIER ID: %s', supplier_id)
 
         else: # user is logged in as admin
             flash('Please log in as a vendor to apply to this bid.', category='error')
@@ -898,6 +902,7 @@ def apply_for_bid():
         mail.send(msg_to_vendor)
         logging.info('SUCCESS EMAIL SENT TO VENDOR')
 
+        logging.info('REDIRECTING BACK TO VIEW-BID-DETAILS PAGE')
         return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
 
@@ -909,6 +914,8 @@ def apply_for_bid():
 @views.route('/download-application-doc', methods = ['GET', 'POST'])
 def download_application_doc():
     if request.method == 'POST':
+        logging.info('DOWNLOADING APPLICATION DOCUMENT FROM S3')
+
         filename = request.form['filename']
         date_time_stamp = request.form['date_time_stamp']
 
