@@ -476,6 +476,11 @@ def view_bid_details(bid_id):
                                         .filter_by(bid_id = bid_object.id) \
                                         .all()
 
+        for application in applications_for_bid:
+            application_submitted_datetime_utc = application.date_time_stamp
+            application_submitted_datetime_central = utc_to_central(application_submitted_datetime_utc)
+            application.date_time_stamp = application_submitted_datetime_central
+
         applied_status = 'not applied - user type is admin'
         applications_for_bid_and_supplier = []
         chat_history_records = []
