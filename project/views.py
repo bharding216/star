@@ -350,10 +350,16 @@ def download_vendor_list():
 @login_required
 def manage_project():
     if request.method == 'POST':
+        logging.info('ADMIN IS CREATING NEW BID')
+
         files = request.files.getlist('file[]')
+
+        # Timestamp to be used in S3 filename:
         now = datetime.datetime.now()
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         secure_date_time_stamp = secure_filename(date_time_stamp)
+        logging.info('SECURE DATETIME STAMP: %s', secure_date_time_stamp)
+
         user_id = current_user.id
         project_title = request.form['project_title']
         bid_type = request.form['bid_type']
@@ -389,7 +395,7 @@ def manage_project():
             db_session.add(new_project)
             db_session.commit()
             new_project_id = new_project.id
-
+            logging.info('NEW PROJECT CREATED: %s', new_project_record)
 
         # Configure S3 credentials
         s3 = boto3.client('s3', region_name='us-east-1',
@@ -421,6 +427,7 @@ def manage_project():
     # Handle GET request:
     with db.session() as db_session:
         bid_list = db_session.query(bids).all()
+        logging.info('COMPLETE BID LIST: %s', bid_list)
 
         for bid in bid_list:
             close_date_utc = bid.close_date
@@ -439,6 +446,8 @@ def manage_project():
 
 @views.route('/view-bid-details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
+    logging.info('LOADING THE VIEW-BID-DETAILS PAGE')
+
     bid_object = db.session.query(bids) \
                         .filter_by(id = bid_id) \
                         .first()
@@ -457,9 +466,9 @@ def view_bid_details(bid_id):
 
     vendor_chat_list = []
     
-    logging.info('bid_object: %s', bid_object)
-    logging.info('applications_for_bid: %s', applications_for_bid)
-
+    logging.info('BID OBJECT: %s', bid_object)
+    logging.info('PROJECT META RECORDS: %s', project_meta_records)
+    logging.info('APPLICATIONS FOR THIS BID: %s', applications_for_bid)
 
     for application in applications_for_bid:
         application_submitted_datetime_utc = application.date_time_stamp
@@ -468,14 +477,14 @@ def view_bid_details(bid_id):
 
 
     if 'user_type' in session:
-        logging.info('session_user_type: %s', session['user_type'])
+        logging.info('SESSION USER_TYPE: %s', session['user_type'])
 
         if session['user_type'] is not None:
             if session['user_type'] == 'supplier':
                 try:
-                    logging.info('supplier_id: %s', current_user.supplier_id)
+                    logging.info('SUPPLIER ID: %s', current_user.supplier_id)
                 except:
-                    logging.info('supplier_id: UNKNOWN')
+                    logging.info('SUPPLIER ID: UNKNOWN')
 
                 chat_history_records = chat_history.query \
                     .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
@@ -515,7 +524,7 @@ def view_bid_details(bid_id):
                 supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
                     filter(supplier_info.id.in_(supplier_ids)).all()
                 vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
-                logging.info('vendor_chat_list: %s', vendor_chat_list)
+                logging.info('VENDOR CHAT LIST: %s', vendor_chat_list)
 
 
         else: # user is not logged in
@@ -530,9 +539,9 @@ def view_bid_details(bid_id):
 
     request_data = request.stream.read()
 
-    logging.info('applied_status: %s', applied_status)
-    logging.info('applications_for_bid_and_supplier: %s', applications_for_bid_and_supplier)
-    logging.info('chat_history_records: %s', chat_history_records)
+    logging.info('HAS THE VENDOR APPLIED TO THIS BID: %s', applied_status)
+    logging.info('APPLICATIONS FOR BID AND SUPPLIER: %s', applications_for_bid_and_supplier)
+    logging.info('CHAT HISTORY RECORDS: %s', chat_history_records)
 
     return render_template('view_bid_details.html', 
                             user = current_user,
@@ -543,8 +552,6 @@ def view_bid_details(bid_id):
                             chat_history_records = chat_history_records,
                             applications_for_bid_and_supplier = applications_for_bid_and_supplier,
                             vendor_chat_list = vendor_chat_list)
-
-
 
 
 
@@ -702,18 +709,25 @@ def apply_for_bid():
         bid = bids.query.get(bid_id)
         close_date_utc = bid.close_date
 
+        logging.info('VENDOR TRYING TO UPLOAD THESE FILES: %s', files)
+
+        if 'user_type' in session:
+            logging.info('SESSION USER_TYPE: %s', session['user_type'])
+
         if current_user.supplier_id:
             supplier_id = current_user.supplier_id
+            logging.info('VENDOR ID: %s', supplier_id)
+
         else: # user is logged in as admin
             flash('Please log in as a vendor to apply to this bid.', category='error')
             return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
         now = datetime.datetime.utcnow()
 
-        logging.info('close_date_utc: %s', close_date_utc)
-        logging.info('current_datetime_utc: %s', now)
-        logging.info('supplier_id: %s', supplier_id)
-        logging.info('bid object: %s', bid)
+        logging.info('BID CLOSE DATE: %s', close_date_utc)
+        logging.info('CURRENT DATETIME: %s', now)
+        logging.info('SUPPLIER ID: %s', supplier_id)
+        logging.info('BID OBJECT: %s', bid)
 
         if close_date_utc < now: # all times in UTC
             flash('The close date for this bid has passed. Please contact us if you have any questions.', category='error')
@@ -727,9 +741,12 @@ def apply_for_bid():
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
         
         S3_BUCKET = 'star-uploads-bucket'
+        logging.info('UPLOADING TO THIS S3 BUCKET: %s', S3_BUCKET)
 
         for file in files:
             s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            logging.info('S3_FILENAME: %s', s3_filename)
+
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
 
             new_applicant_record = {
@@ -739,32 +756,18 @@ def apply_for_bid():
                 'bid_id': bid_id
             }
 
+            logging.info('NEW APPLICANT FILE AND BID DETAILS: %s', new_applicant_record)
+
             with db.session() as db_session:
                 new_application = applicant_docs(**new_applicant_record)
                 db_session.add(new_application)
                 db_session.commit()
+                logging.info('NEW DB RECORD CREATED')
 
         flash('Your application was successfully submitted! Feel free to log out. We will \
               contact you via email or phone with next steps. Scroll down to view your application documents.', \
                 category='success')
 
-        # applications_for_bid_and_supplier = db_session.query(applicant_docs) \
-        #                                             .filter_by(bid_id = bid_id) \
-        #                                             .filter(applicant_docs.supplier_id == supplier_id) \
-        #                                             .all()
-
-        # if applications_for_bid_and_supplier is not None:
-        #     applied_status = 'applied'
-        # else:
-        #     applied_status = 'not applied'
-
-        # project_meta_records = db_session.query(project_meta) \
-        #                                 .filter_by(bid_id = bid_object.id) \
-        #                                 .all()
-
-        # applications_for_bid = db_session.query(applicant_docs) \
-        #                                 .filter_by(bid_id = bid_object.id) \
-        #                                 .all()
 
         bid_object = db_session.query(bids) \
                             .filter_by(id = bid_id) \
@@ -774,9 +777,13 @@ def apply_for_bid():
                                         .filter_by(id = supplier_id) \
                                         .first()
 
+        logging.info('BID OBJECT: %s', bid_object)
+        logging.info('SUPPLIER/VENDOR OBJECT: %s', supplier_object)
+
+
         admin_msg = Message('New Application Submitted',
                         sender = ("STAR", 'hello@stxresources.org'),
-                        recipients = ['bharding80@gmail.com'
+                        recipients = ['brandon@getsurmount.com'
                                     ]
                         )
 
@@ -786,6 +793,8 @@ def apply_for_bid():
                                 )
 
         mail.send(admin_msg)
+        logging.info('SUCCESS EMAIL SENT TO ADMIN')
+
 
         msg_to_vendor = Message('Thank You For Applying',
                         sender = ("STAR", 'hello@stxresources.org'),
@@ -799,20 +808,10 @@ def apply_for_bid():
                                 )
 
         mail.send(msg_to_vendor)
-
-
+        logging.info('SUCCESS EMAIL SENT TO VENDOR')
 
         return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
-        # return render_template('view_bid_details.html', 
-        #                         user = current_user,
-        #                         bid_object = bid_object,
-        #                         project_meta_records = project_meta_records,
-        #                         applied_status = applied_status,
-        #                         applications_for_bid_and_supplier = applications_for_bid_and_supplier,
-        #                         applications_for_bid = applications_for_bid,
-        #                         supplier_object = supplier_object
-        #                         )
 
     else: # user is trying to send a GET request
         logging.info('User trying to send a GET request to "apply-for-bid" view function.')
@@ -1149,21 +1148,25 @@ def update_supplier_settings(field_name):
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
     open_bids_to_check = bids.query.filter(bids.status == 'open').all()
-    logging.info('open_bids_to_check: %s', open_bids_to_check)
+    logging.info('OPEN BIDS TO CHECK ON CLOSE DATE: %s', open_bids_to_check)
 
-    current_datetime_utc = datetime.datetime.now()
-    logging.info('current_datetime_utc: %s', current_datetime_utc)
+    current_datetime_utc = datetime.datetime.utcnow()
+    logging.info('CURRENT DATETIME UTC: %s', current_datetime_utc)
 
     bids_to_update = []
     for bid in open_bids_to_check:
+        logging.info('CHECKING THE CLOSE DATE ON THIS BID: %s', bid)
+        logging.info('UTC CLOSE DATE FOR THIS ^ BID: %s', bid.close_date)
         if bid.close_date < current_datetime_utc: # close_date has passed
             bid.status = 'closed'
             bids_to_update.append(bid)
+            logging.info('SUCCESSFULLY CLOSED BID: %s', bid)
 
     db.session.bulk_save_objects(bids_to_update)
     db.session.commit()
 
     open_bids = bids.query.filter(bids.status == 'open').all()
+    logging.info('RESULTING OPEN BIDS: %s', open_bids)
 
     for bid in open_bids:
         close_date_utc = bid.close_date
@@ -1234,10 +1237,12 @@ def login_vendor():
         email = request.form["email"]
         password = request.form["password"]
 
+        logging.info('LOGGING IN THIS VENDOR EMAIL: %s', email)
+
         user = supplier_login.query.filter_by(email = email).first()
 
         if user:
-            logging.info('user trying to log in with email: %s', email)
+            logging.info('USER TRYING TO LOG IN WITH THIS EMAIL: %s', email)
 
             if check_password_hash(user.password, password):
                 login_user(user, remember = True)
@@ -1245,6 +1250,8 @@ def login_vendor():
                 logging.info('suppler_id: %s', user.supplier_id)
                 session.permanent = True
                 flash('Login successful!', category = 'success')
+                logging.info('SUCCESSFULLY LOGGED IN VENDOR EMAIL: %s', email)
+                logging.info('SESSION USER_TYPE: %s', session['user_type'])
                 return redirect(url_for('views.index'))
             else:
                 flash('Incorrect password. Please try again.', category = 'error')
@@ -1358,6 +1365,8 @@ def login_admin():
     if request.method == 'POST':
         email = request.form["email"]
         password = request.form["password"]
+
+        logging.info('LOGGING IN THIS ADMIN EMAIL: %s', email)
 
         user = admin_login.query.filter_by(email = email).first()
         if user:
