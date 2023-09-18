@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import Flask, session, request, redirect, url_for, render_template
+from flask import Flask, session, request, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask import g
@@ -32,6 +32,7 @@ def create_app():
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_SECURE'] = True
     #app.config['SESSION_COOKIE_NAME'] = 'my_session_cookie'
+    app.config['TIMEOUT'] = 300
     Session(app)
 
 
