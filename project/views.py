@@ -69,7 +69,8 @@ def contact():
                 if not error:
                     msg = Message('New Contact Form Submission',
                                     sender = ("STAR", 'hello@stxresources.org'),
-                                    recipients = ['bharding80@gmail.com'
+                                    recipients = ['brandon@getsurmount.com',
+                                                  'CCallanen@wbpconsult.com'
                                                 ]
                                     )
                                     #'Micah@earl-law.com'
@@ -325,8 +326,39 @@ def download_vendor_list():
     columns = [column['name'] for column in inspector.get_columns('supplier_info')]
     csv_writer.writerow(columns)
 
+    s = URLSafeSerializer(os.getenv('secret_key'))
+
     for data in supplier_data:
-        csv_writer.writerow([getattr(data, column) for column in columns])
+        if data.ein: # If there is an EIN value present
+            ein, current_time_str_ein = s.loads(data.ein)
+        else:
+            ein = ''
+
+        if data.ssn: # If there is an SSN value present
+            ssn, current_time_str_ssn = s.loads(data.ssn)
+        else:
+            ssn = ''
+        if data.duns: # If there is an DUNS value present
+            print("Serialized DUNS:", data.duns)
+            duns, current_time_str_duns = s.loads(data.duns)
+        else:
+            duns = ''
+
+        row_data = []
+        for column in columns:
+            if column != 'ein' and column != 'ssn' and column != 'duns':
+                value = getattr(data, column)
+            elif column == 'ein':
+                value = ein
+            elif column == 'ssn':
+                value = ssn
+            elif column == 'duns':
+                value = duns
+
+            row_data.append(value)
+
+        csv_writer.writerow(row_data)
+
 
     filename = 'supplier_info.csv'
 
