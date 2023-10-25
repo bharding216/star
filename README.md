@@ -12,3 +12,5 @@ This application includes features such as:
   <li>Ability to get/post "request for bid" information packages</li>
   <li>Email notifications to bidders based on certain events</li>
 </ul>
+
+See the live version at https://www.stxresources.org
