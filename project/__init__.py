@@ -44,10 +44,10 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
 
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + os.getenv('mysql_user') + \
+    #     ':' + os.getenv('mysql_password') + '@' + os.getenv('mysql_host') + '/' + os.getenv('mysql_db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///star.db'
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + os.getenv('mysql_user') + \
-        ':' + os.getenv('mysql_password') + '@' + os.getenv('mysql_host') + '/' + os.getenv('mysql_db')
-    
     app.config['SQLALCHEMY_POOL_SIZE'] = 5
     app.config['SQLALCHEMY_POOL_RECYCLE'] = 450
     app.config['SQLALCHEMY_MAX_OVERFLOW'] = 2
