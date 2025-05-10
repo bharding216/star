@@ -48,7 +48,7 @@ def contact():
         recaptcha_response = request.form.get('g-recaptcha-response')
         if recaptcha_response:
             # Verify the reCAPTCHA response using the Google reCAPTCHA API
-            response = requests.post(url=VERIFY_URL + '?secret=' + secret_key + '&response=' + recaptcha_response).json()
+            response = requests.post(url=f"{VERIFY_URL}?secret={secret_key or ''}&response={recaptcha_response or ''}").json()
 
             if response['success'] == True:
                 first_name = request.form['first_name']
@@ -201,7 +201,7 @@ def registration_business():
 
         current_time = datetime.datetime.now().time()
         current_time_str = current_time.strftime('%H:%M:%S')
-        s = URLSafeSerializer(os.getenv('secret_key'))
+        s = URLSafeSerializer(os.getenv('secret_key') or '')
 
         radio_type = request.form['radio_type']
         if radio_type == 'individual':
@@ -210,28 +210,30 @@ def registration_business():
             session['ssn'] = ssn_serialized
             logging.info('ssn_serialized: %s', ssn_serialized)
 
-            new_supplier_info_record = supplier_info(first_name = session['first_name'],
-                                                    last_name = session['last_name'],
-                                                    company_name = session['company_name'],
-                                                    email = session['email'],
-                                                    phone = session['phone'],
-                                                    address_1 = session['address_1'],
-                                                    address_2 = session['address_2'],
-                                                    city = session['city'],
-                                                    state = session['state'],
-                                                    zip_code = session['zip_code'],
-                                                    ssn = session['ssn'],
-                                                    legal_type = session['legal_structure']
-                                                    )
+            new_supplier_info_record = supplier_info(**{
+                'first_name': session['first_name'],
+                'last_name': session['last_name'],
+                'company_name': session['company_name'],
+                'email': session['email'],
+                'phone': session['phone'],
+                'address_1': session['address_1'],
+                'address_2': session['address_2'],
+                'city': session['city'],
+                'state': session['state'],
+                'zip_code': session['zip_code'],
+                'ssn': session['ssn'],
+                'legal_type': session['legal_structure']
+            })
             db.session.add(new_supplier_info_record)
             db.session.commit()
             
             new_supplier_info_record_id = new_supplier_info_record.id
 
-            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
-                                                    email = session['email'],
-                                                    password = session['password']
-                                                    )
+            new_supplier_login_record = supplier_login(**{
+                'supplier_id': new_supplier_info_record_id,
+                'email': session['email'],
+                'password': session['password']
+            })
             logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_login_record)
             db.session.commit()
@@ -254,30 +256,32 @@ def registration_business():
                 logging.info('ein record is not applicable for this user')
 
 
-            new_supplier_info_record = supplier_info(first_name = session['first_name'],
-                                                    last_name = session['last_name'],
-                                                    company_name = session['company_name'],
-                                                    email = session['email'],
-                                                    phone = session['phone'],
-                                                    address_1 = session['address_1'],
-                                                    address_2 = session['address_2'],
-                                                    city = session['city'],
-                                                    state = session['state'],
-                                                    zip_code = session['zip_code'],
-                                                    ein = session['ein'],
-                                                    duns = session['duns'],
-                                                    legal_type = session['legal_structure']
-                                                    )
+            new_supplier_info_record = supplier_info(**{
+                'first_name': session['first_name'],
+                'last_name': session['last_name'],
+                'company_name': session['company_name'],
+                'email': session['email'],
+                'phone': session['phone'],
+                'address_1': session['address_1'],
+                'address_2': session['address_2'],
+                'city': session['city'],
+                'state': session['state'],
+                'zip_code': session['zip_code'],
+                'ein': session['ein'],
+                'duns': session['duns'],
+                'legal_type': session['legal_structure']
+            })
             logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_info_record)
             db.session.commit()
 
             new_supplier_info_record_id = new_supplier_info_record.id
 
-            new_supplier_login_record = supplier_login(supplier_id = new_supplier_info_record_id,
-                                                    email = session['email'],
-                                                    password = session['password']
-                                                    )
+            new_supplier_login_record = supplier_login(**{
+                'supplier_id': new_supplier_info_record_id,
+                'email': session['email'],
+                'password': session['password']
+            })
             db.session.add(new_supplier_login_record)
             db.session.commit()
 
@@ -326,7 +330,7 @@ def download_vendor_list():
     columns = [column['name'] for column in inspector.get_columns('supplier_info')]
     csv_writer.writerow(columns)
 
-    s = URLSafeSerializer(os.getenv('secret_key'))
+    s = URLSafeSerializer(os.getenv('secret_key') or '')
 
     for data in supplier_data:
         if data.ein: # If there is an EIN value present
@@ -441,7 +445,7 @@ def manage_project():
             S3_BUCKET = 'star-uploads-bucket'
 
             for file in files:
-                s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+                s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
                 s3.upload_fileobj(file, S3_BUCKET, s3_filename)
 
                 new_metadata_record = {
@@ -494,17 +498,17 @@ def manage_project():
 def view_bid_details(bid_id):
     logging.info('LOADING THE VIEW-BID-DETAILS PAGE')
 
-    bid_object = db.session.query(bids) \
-                        .filter_by(id = bid_id) \
-                        .first()
-    if bid_object:
-        close_date_utc = bid_object.close_date
-        close_date_central = utc_to_central(close_date_utc)
-        bid_object.close_date = close_date_central
+    bid_object = db.session.query(bids).filter_by(id=bid_id).first()
+    
+    if not bid_object:
+        flash('Bid not found', category='error')
+        return redirect(url_for('views.index'))
+        
+    close_date_utc = bid_object.close_date
+    close_date_central = utc_to_central(close_date_utc)
+    bid_object.close_date = close_date_central
 
-    project_meta_records = db.session.query(project_meta) \
-                                    .filter_by(bid_id = bid_object.id) \
-                                    .all()
+    project_meta_records = db.session.query(project_meta).filter_by(bid_id=bid_object.id).all()
 
     logging.info('BID OBJECT: %s', bid_object)
     logging.info('PROJECT META RECORDS: %s', project_meta_records)
@@ -592,101 +596,6 @@ def view_bid_details(bid_id):
                             applications_for_bid_and_supplier = applications_for_bid_and_supplier,
                             vendor_chat_list = vendor_chat_list)
 
-    # RE-WROTE THE CODE BELOW FOR CLARITY. DELETE THESE COMMENTS ONCE YOU TEST THE CODE ABOVE.
-    # applications_for_bid = db.session.query(applicant_docs) \
-    #                                 .filter_by(bid_id = bid_object.id) \
-    #                                 .all()
-
-    # vendor_chat_list = []
-    
-
-    # logging.info('APPLICATIONS FOR THIS BID: %s', applications_for_bid)
-
-    # for application in applications_for_bid:
-    #     application_submitted_datetime_utc = application.date_time_stamp
-    #     application_submitted_datetime_central = utc_to_central(application_submitted_datetime_utc)
-    #     application.date_time_stamp = application_submitted_datetime_central
-
-
-    # if 'user_type' in session:
-    #     logging.info('SESSION USER_TYPE: %s', session['user_type'])
-
-    #     if session['user_type'] is not None:
-    #         logging.info('SESSION USER_TYPE IS NOT NONE')
-
-    #         if session['user_type'] == 'supplier':
-    #             try:
-    #                 logging.info('SUPPLIER ID: %s', current_user.supplier_id)
-    #             except:
-    #                 logging.info('SUPPLIER ID: UNKNOWN')
-
-    #             chat_history_records = chat_history.query \
-    #                 .filter_by(supplier_id=current_user.supplier_id, bid_id=bid_id) \
-    #                 .all()
-
-    #             if chat_history_records:
-    #                 for message in chat_history_records:
-    #                     chat_timestamp_utc = message.datetime_stamp
-    #                     chat_timestamp_central = utc_to_central(chat_timestamp_utc)
-    #                     message.datetime_stamp = chat_timestamp_central
-    #             else: # no chat history
-    #                 chat_history_records = []
-
-    #             has_applied = db.session.query(applicant_docs) \
-    #                 .filter(and_(applicant_docs.bid_id == bid_id, applicant_docs.supplier_id == current_user.supplier_id)) \
-    #                 .first() is not None # returns true or false
-
-    #             if has_applied:
-    #                 applied_status = 'applied'
-
-    #                 applications_for_bid_and_supplier = db.session.query(applicant_docs) \
-    #                                     .filter_by(bid_id = bid_object.id) \
-    #                                     .filter_by(supplier_id = current_user.supplier_id) \
-    #                                     .all()
-                                
-    #             else: # supplier has not applied
-    #                 applied_status = 'not applied'
-    #                 applications_for_bid_and_supplier = []
-
-    #         else: # user is admin
-    #             applied_status = 'not applied'
-    #             applications_for_bid_and_supplier = []
-    #             chat_history_records = []
-
-    #             distinct_supplier_ids = db.session.query(chat_history.supplier_id).distinct().all()
-    #             supplier_ids = [supplier_id for supplier_id, in distinct_supplier_ids]
-    #             supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
-    #                 filter(supplier_info.id.in_(supplier_ids)).all()
-    #             vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
-    #             logging.info('VENDOR CHAT LIST: %s', vendor_chat_list)
-
-
-    #     else: # user is not logged in
-    #         applied_status = 'not applied'
-    #         applications_for_bid_and_supplier = []
-    #         chat_history_records = []
-
-    # else: # user_type key not in session
-    #     applied_status = 'not applied'
-    #     applications_for_bid_and_supplier = []
-    #     chat_history_records = []
-
-    # request_data = request.stream.read()
-
-    # logging.info('HAS THE VENDOR APPLIED TO THIS BID: %s', applied_status)
-    # logging.info('APPLICATIONS FOR BID AND SUPPLIER: %s', applications_for_bid_and_supplier)
-    # logging.info('CHAT HISTORY RECORDS: %s', chat_history_records)
-
-    # return render_template('view_bid_details.html', 
-    #                         user = current_user,
-    #                         bid_object = bid_object,
-    #                         project_meta_records = project_meta_records,
-    #                         applications_for_bid = applications_for_bid,
-    #                         applied_status = applied_status,
-    #                         chat_history_records = chat_history_records,
-    #                         applications_for_bid_and_supplier = applications_for_bid_and_supplier,
-    #                         vendor_chat_list = vendor_chat_list)
-
 
 
 
@@ -708,12 +617,13 @@ def post_chat_message():
             author_type = 'admin'
             supplier_id = request.form['supplier_id']
 
-            new_comment = chat_history(author_type = author_type, 
-                                    datetime_stamp = datetime_stamp, 
-                                    comment = message, 
-                                    bid_id = bid_id,
-                                    supplier_id = supplier_id
-                                    )
+            new_comment = chat_history(**{
+                'author_type': author_type, 
+                'datetime_stamp': datetime_stamp, 
+                'comment': message, 
+                'bid_id': bid_id,
+                'supplier_id': supplier_id
+            })
             
             logging.info('new_comment: %s', new_comment)
 
@@ -732,12 +642,13 @@ def post_chat_message():
         else:
             return 'Error: Session user_type not set'
 
-        new_comment = chat_history(author_type = author_type, 
-                                datetime_stamp = datetime_stamp, 
-                                comment = message, 
-                                bid_id = bid_id,
-                                supplier_id = supplier_id
-                                )
+        new_comment = chat_history(**{
+            'author_type': author_type, 
+            'datetime_stamp': datetime_stamp, 
+            'comment': message, 
+            'bid_id': bid_id,
+            'supplier_id': supplier_id
+        })
         
         logging.info('new_comment: %s', new_comment)
 
@@ -809,6 +720,10 @@ def view_application(bid_id, supplier_id):
                             .filter_by(id = bid_id) \
                             .first()
 
+        if not bid_object:
+            flash('Bid not found', category='error')
+            return redirect(url_for('views.index'))
+
         applications_for_bid_and_supplier = db_session.query(applicant_docs) \
                                         .filter_by(bid_id = bid_object.id) \
                                         .filter_by(supplier_id = supplier_id) \
@@ -841,6 +756,11 @@ def apply_for_bid():
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
         bid = bids.query.get(bid_id)
+        
+        if not bid:
+            flash('Bid not found', category='error')
+            return redirect(url_for('views.index'))
+            
         close_date_utc = bid.close_date
 
         logging.info('VENDOR TRYING TO UPLOAD THESE FILES: %s', files)
@@ -882,7 +802,7 @@ def apply_for_bid():
         logging.info('UPLOADING TO THIS S3 BUCKET: %s', S3_BUCKET)
 
         for file in files:
-            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
             logging.info('S3_FILENAME: %s', s3_filename)
 
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
@@ -918,7 +838,7 @@ def apply_for_bid():
         logging.info('BID OBJECT: %s', bid_object)
         logging.info('SUPPLIER/VENDOR OBJECT: %s', supplier_object)
 
-
+        # Send email to admin
         admin_msg = Message('New Application Submitted',
                         sender = ("STAR", 'hello@stxresources.org'),
                         recipients = ['brandon@getsurmount.com'
@@ -933,20 +853,22 @@ def apply_for_bid():
         mail.send(admin_msg)
         logging.info('SUCCESS EMAIL SENT TO ADMIN')
 
+        # Send email to vendor if supplier_object exists
+        if supplier_object and supplier_object.email:
+            msg_to_vendor = Message('Thank You For Applying',
+                            sender = ("STAR", 'hello@stxresources.org'),
+                            recipients = [supplier_object.email]
+                            )
 
-        msg_to_vendor = Message('Thank You For Applying',
-                        sender = ("STAR", 'hello@stxresources.org'),
-                        recipients = [supplier_object.email
-                                    ]
-                        )
-
-        msg_to_vendor.html = render_template('new_app_email_to_vendor.html',
+            msg_to_vendor.html = render_template('new_app_email_to_vendor.html',
                                 bid_object = bid_object,
                                 supplier_object = supplier_object
                                 )
 
-        mail.send(msg_to_vendor)
-        logging.info('SUCCESS EMAIL SENT TO VENDOR')
+            mail.send(msg_to_vendor)
+            logging.info('SUCCESS EMAIL SENT TO VENDOR')
+        else:
+            logging.warning('VENDOR EMAIL NOT SENT: supplier_object missing or has no email')
 
         logging.info('REDIRECTING BACK TO VIEW-BID-DETAILS PAGE')
         return redirect(url_for('views.view_bid_details', bid_id=bid_id))
@@ -957,7 +879,7 @@ def apply_for_bid():
         return 'This URL only accepts POST requests. Please return to the STAR homepage.'
 
 
-@views.route('/download-application-doc', methods = ['GET', 'POST'])
+@views.route('/download-application-doc', methods=['GET', 'POST'])
 def download_application_doc():
     if request.method == 'POST':
         logging.info('DOWNLOADING APPLICATION DOCUMENT FROM S3')
@@ -1003,6 +925,9 @@ def download_application_doc():
         response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
 
         return Response(BytesIO(response.content), headers=headers)
+    
+    # Return a default response for GET requests
+    return redirect(url_for('views.index'))
 
 
 @views.route('/delete-application-doc', methods = ['GET', 'POST'])
@@ -1047,16 +972,9 @@ def delete_application_doc():
             applied_status = 'not applied'
 
         flash('Document deleted successfully.', 'success')
-        bid_object = db_session.query(bids) \
-                                .filter_by(id = bid_id) \
-                                .first()
-
-        project_meta_records = db_session.query(project_meta) \
-                                            .filter_by(bid_id = bid_object.id) \
-                                            .all()
-
-        return redirect(url_for('views.view_bid_details',
-                                bid_id = bid_object.id))
+        
+        # Instead of relying on bid_object, just redirect using the bid_id we already have
+        return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
 
 
@@ -1079,7 +997,7 @@ def upload_doc():
         S3_BUCKET = 'star-uploads-bucket'
 
         for file in files:
-            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
 
             new_metadata_record = {
@@ -1098,13 +1016,16 @@ def upload_doc():
 
         return redirect(url_for('views.view_bid_details',
                                 bid_id = bid_id))
+    
+    # Add default return for GET requests
+    return redirect(url_for('views.index'))
 
 
 
 
 
 
-@views.route('/download-project', methods = ['GET', 'POST'])
+@views.route('/download-project', methods=['GET', 'POST'])
 def download_project():
     if request.method == 'POST':
         filename = request.form['filename']
@@ -1132,17 +1053,15 @@ def download_project():
 
         download_filename = secure_filename(filename)
 
-        # headers = Headers()
-        # headers.add('Content-Disposition', 'attachment', filename=download_filename)
-        # response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
-
         headers = {
             'Content-Disposition': f'attachment; filename="{download_filename}"',
             'Content-Type': 'application/pdf'  # Specify the content type as PDF
         }
 
-
         return Response(BytesIO(response.content), headers=headers)
+        
+    # Add default return for GET requests
+    return redirect(url_for('views.index'))
 
 
 
@@ -1184,20 +1103,26 @@ def delete_doc():
     bid_object = db_session.query(bids) \
                             .filter_by(id = bid_id) \
                             .first()
-
-    project_meta_records = db_session.query(project_meta) \
+                            
+    # If bid_object exists, get project_meta_records and render template
+    if bid_object:
+        project_meta_records = db_session.query(project_meta) \
                                         .filter_by(bid_id = bid_object.id) \
                                         .all()
 
-    return render_template('view_bid_details.html', 
-                            user = current_user,
-                            bid_object = bid_object,
-                            project_meta_records = project_meta_records)
+        return render_template('view_bid_details.html', 
+                              user = current_user,
+                              bid_object = bid_object,
+                              project_meta_records = project_meta_records)
+    else:
+        # If bid not found, redirect to index
+        flash('Bid not found', category='error')
+        return redirect(url_for('views.index'))
 
 
 
 
-@views.route('/delete-project', methods = ['GET', 'POST'])
+@views.route('/delete-project', methods=['GET', 'POST'])
 @login_required
 def delete_project():
     if request.method == 'POST':
@@ -1230,12 +1155,11 @@ def delete_project():
             db_session.delete(bid_to_delete)
             db_session.commit()
                 
-
-        with db.session() as db_session:
-            bid_list = db_session.query(bids).all()
-
-            flash('Project successfully deleted!', category='error')
-            return redirect(url_for('views.manage_project', user = current_user))
+        flash('Project successfully deleted!', category='error')
+        return redirect(url_for('views.manage_project', user = current_user))
+    
+    # Add default return for GET requests
+    return redirect(url_for('views.index'))
 
 
 
@@ -1428,7 +1352,7 @@ def reset_password_request(user_type):
             current_time = datetime.datetime.now().time()
             current_time_str = current_time.strftime('%H:%M:%S')
 
-            s = URLSafeSerializer(os.getenv('secret_key'))
+            s = URLSafeSerializer(os.getenv('secret_key') or '')
 
             # 'dumps' takes a list as input and serializes it into a string representation.
             # This returns a string representation of the data - encoded using your secret key.
@@ -1468,7 +1392,7 @@ def reset_password_request(user_type):
 def reset_password(token):
     if request.method == "POST":
 
-        s = URLSafeSerializer(os.getenv('secret_key'))
+        s = URLSafeSerializer(os.getenv('secret_key') or '')
         try: 
             # loads => take in a serialized string and generate the original list of string inputs.
             # The first element in the list is the user's email.
@@ -1486,12 +1410,20 @@ def reset_password(token):
             return redirect(url_for('views.reset_password', 
                                     token = token))
 
+        if not new_password:
+            flash('Password cannot be empty.', category='error')
+            return redirect(url_for('views.reset_password', token=token))
+            
         hashed_password = generate_password_hash(new_password)
         
-        user = supplier_login.query.filter_by(email = user_email_from_token).first()
-        if user is None: # Then it must have been an admin requesting a new password
-            user = admin_login.query.filter_by(email = user_email_from_token).first()
+        user = supplier_login.query.filter_by(email=user_email_from_token).first()
+        if user is None:  # Then it must have been an admin requesting a new password
+            user = admin_login.query.filter_by(email=user_email_from_token).first()
 
+        if user is None:
+            flash('User not found. Please try again or contact support.', category='error')
+            return redirect(url_for('views.index'))
+            
         user.password = hashed_password
         db.session.commit()
 
@@ -1556,9 +1488,10 @@ def admin_signup():
 
         else:
             hashed_password = generate_password_hash(password1)
-            new_admin = admin_login(password=hashed_password, 
-                                    email=email
-                                    )
+            new_admin = admin_login(**{
+                'password': hashed_password, 
+                'email': email
+            })
             db.session.add(new_admin)
             db.session.commit()
             flash('Admin account successfully created!', category='success')

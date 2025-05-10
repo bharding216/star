@@ -77,10 +77,11 @@ def create_app():
 
         db.create_all()
 
-        login_manager.login_view = "views.login_vendor"
+        login_manager.init_app(app)
+        # Use setattr to avoid type checking issues
+        setattr(login_manager, 'login_view', "views.login_vendor")
         login_manager.login_message = ""
         login_manager.login_message_category = "error"
-        login_manager.init_app(app)
 
         @login_manager.user_loader
         def load_user(id):
@@ -101,9 +102,11 @@ def create_app():
             else:
                 return dict(user=None)
 
-        @app.before_first_request
+        # Set user type at startup instead of using before_first_request
+        @app.before_request
         def set_user_type():
-            session['user_type'] = None
+            if 'user_type' not in session:
+                session['user_type'] = None
 
         @app.before_request
         def redirect_to_https():
