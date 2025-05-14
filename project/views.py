@@ -53,7 +53,7 @@ def contact():
             if response['success'] == True:
                 first_name = request.form['first_name']
                 last_name = request.form['last_name']
-                email = request.form['email']
+                email = request.form['email'].lower()
                 phone = request.form['phone']
                 message = request.form['message']
 
@@ -70,7 +70,7 @@ def contact():
                     msg = Message('New Contact Form Submission',
                                     sender = ("STAR", 'hello@stxresources.org'),
                                     recipients = ['brandon@getsurmount.com',
-                                                  'CCallanen@wbpconsult.com'
+                                                #   'CCallanen@wbpconsult.com'
                                                 ]
                                     )
                                     #'Micah@earl-law.com'
@@ -129,7 +129,7 @@ def registration_personal():
         first_name = request.form['first_name']
         last_name = request.form['last_name']
         company_name = request.form['company_name']
-        email = request.form['email']
+        email = request.form['email'].lower()
         phone = request.form['phone']
         password1 = request.form['password1']
         password2 = request.form['password2']
@@ -1020,11 +1020,6 @@ def upload_doc():
     # Add default return for GET requests
     return redirect(url_for('views.index'))
 
-
-
-
-
-
 @views.route('/download-project', methods=['GET', 'POST'])
 def download_project():
     if request.method == 'POST':
@@ -1305,7 +1300,7 @@ def bid_details():
 @views.route('/login-vendor', methods=['GET', 'POST'])
 def login_vendor():
     if request.method == 'POST':
-        email = request.form["email"]
+        email = request.form["email"].lower()
         password = request.form["password"]
 
         logging.info('LOGGING IN THIS VENDOR EMAIL: %s', email)
@@ -1341,52 +1336,46 @@ def login_vendor():
 def reset_password_request(user_type):
     if request.method == "POST":
         email = request.form.get("email")
-        
-        if user_type == 'supplier':
-            user = supplier_login.query.filter_by(email=email).first()
-        else:
-            user = admin_login.query.filter_by(email=email).first()
+        if email:
+            email = email.lower()  # Convert to lowercase only if email exists
+            
+            if user_type == 'supplier':
+                user = supplier_login.query.filter_by(email=email).first()
+            else:
+                user = admin_login.query.filter_by(email=email).first()
 
+            if user:
+                current_time = datetime.datetime.now().time()
+                current_time_str = current_time.strftime('%H:%M:%S')
 
-        if user:
-            current_time = datetime.datetime.now().time()
-            current_time_str = current_time.strftime('%H:%M:%S')
+                s = URLSafeSerializer(os.getenv('secret_key') or '')
 
-            s = URLSafeSerializer(os.getenv('secret_key') or '')
+                token = s.dumps([email, current_time_str])
 
-            # 'dumps' takes a list as input and serializes it into a string representation.
-            # This returns a string representation of the data - encoded using your secret key.
-            token = s.dumps([email, current_time_str])
+                reset_password_url = url_for('views.reset_password', 
+                                              token = token, 
+                                              _external=True
+                                              )
 
-            reset_password_url = url_for('views.reset_password', 
-                                          token = token, 
-                                          _external=True
-                                          )
+                msg = Message('Password Reset Request', 
+                    sender = ("STAR", 'hello@stxresources.org'),
+                    recipients = [email],
+                    body=f'Reset your password by visiting the following link: {reset_password_url}')
 
-            msg = Message('Password Reset Request', 
-                sender = ("STAR", 'hello@stxresources.org'),
-                recipients = [email],
-                body=f'Reset your password by visiting the following link: {reset_password_url}')
+                mail.send(msg) 
+                flash('Success! We sent you an email containing a link where you can reset your password.', category = 'success')
+                return redirect(url_for('views.index'))
 
-            mail.send(msg) 
-            flash('Success! We sent you an email containing a link where you can reset your password.', category = 'success')
-            return redirect(url_for('views.index'))
-
-        else:
-            flash('That email does not exist in our system. Please try again.', category = 'error')
-            return redirect(url_for('views.reset_password_request',
-                                     user_type = user_type,
-                                     user = current_user
-                                     )
-                            )
+            else:
+                flash('That email does not exist in our system. Please try again.', category = 'error')
+                return redirect(url_for('views.reset_password_request',
+                                         user_type = user_type,
+                                         user = current_user
+                                         ))
     
-    else:
-        return render_template("reset_password_form.html", 
-                               user_type = user_type,
-                               user = current_user)
-
-
-
+    return render_template("reset_password_form.html", 
+                           user_type = user_type,
+                           user = current_user)
 
 @views.route("/reset_password/<token>", methods=["GET", "POST"])
 def reset_password(token):
@@ -1442,7 +1431,7 @@ def reset_password(token):
 @views.route('/login-admin', methods=['GET', 'POST'])
 def login_admin():
     if request.method == 'POST':
-        email = request.form["email"]
+        email = request.form["email"].lower()
         password = request.form["password"]
 
         logging.info('LOGGING IN THIS ADMIN EMAIL: %s', email)
@@ -1470,7 +1459,7 @@ def login_admin():
 @views.route('/admin-signup', methods=['GET', 'POST'])
 def admin_signup():
     if request.method == "POST":
-        email = request.form['email']
+        email = request.form['email'].lower()
         password1 = request.form['password1']
         password2 = request.form['password2']
         secret_code = request.form['secret_code']

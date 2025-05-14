@@ -10,11 +10,9 @@ from helpers import generate_sitemap
 from dotenv import load_dotenv
 import logging
 
-
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
-
 
 def create_app():
     app = Flask(__name__)
@@ -23,30 +21,30 @@ def create_app():
 
     app.jinja_env.globals.update(generate_sitemap = generate_sitemap)
 
-    app.config['MYSQL_HOST'] = os.getenv('mysql_host')
-    app.config['MYSQL_USER'] = os.getenv('mysql_user')
-    app.config['MYSQL_PASSWORD'] = os.getenv('mysql_password')
-    app.config['MYSQL_DB'] = os.getenv('mysql_db')
     app.config['SECRET_KEY'] = os.getenv('secret_key')
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_SECURE'] = True
-    #app.config['SESSION_COOKIE_NAME'] = 'my_session_cookie'
     app.config['TIMEOUT'] = 300
     Session(app)
 
-
-    # Mail config settings:
-    app.config['MAIL_SERVER']='live.smtp.mailtrap.io'
-    app.config['MAIL_PORT'] = 587
-    app.config['MAIL_USERNAME'] = 'api'
-    app.config['MAIL_PASSWORD'] = os.getenv('mail_password')
+    # Mail config settings for AWS SES:
+    app.config['MAIL_SERVER'] = os.getenv('AWS_SES_MAIL_SERVER')
+    app.config['MAIL_PORT'] = 587 
+    app.config['MAIL_USERNAME'] = os.getenv('AWS_SES_SMTP_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('AWS_SES_SMTP_PASSWORD')
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_DEFAULT_SENDER'] = ('STX Resources', 'hello@stxresources.org')
 
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + os.getenv('mysql_user') + \
-    #     ':' + os.getenv('mysql_password') + '@' + os.getenv('mysql_host') + '/' + os.getenv('mysql_db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///star.db'
+    # DB Config
+    postgres_user = os.getenv('postgres_user', '')
+    postgres_password = os.getenv('postgres_password', '')
+    postgres_host = os.getenv('postgres_host', '')
+    postgres_db = os.getenv('postgres_db', '')
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f'postgresql+psycopg2://{postgres_user}:{postgres_password}@{postgres_host}/{postgres_db}'
+    )
 
     app.config['SQLALCHEMY_POOL_SIZE'] = 5
     app.config['SQLALCHEMY_POOL_RECYCLE'] = 450
@@ -60,7 +58,6 @@ def create_app():
 
     db.init_app(app)
     mail.init_app(app)
-
 
     with app.app_context():
 
