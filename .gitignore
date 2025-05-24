@@ -2,3 +2,5 @@
 .env
 flask_session/
 data.sql
+/node_modules
+/instance
