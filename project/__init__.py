@@ -9,10 +9,13 @@ import os
 from helpers import generate_sitemap
 from dotenv import load_dotenv
 import logging
+from project.utils.logging import configure_logging
+from project.utils.config import Config
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
+config = Config()
 
 def create_app():
     app = Flask(__name__)
@@ -21,12 +24,8 @@ def create_app():
 
     app.jinja_env.globals.update(generate_sitemap = generate_sitemap)
 
-    app.config['SECRET_KEY'] = os.getenv('secret_key')
-    app.config['SESSION_TYPE'] = 'filesystem'
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['TIMEOUT'] = 300
-    Session(app)
+    # Configure app settings from Config class
+    app.config.from_object(config)
 
     # Mail config settings for AWS SES:
     app.config['MAIL_SERVER'] = os.getenv('AWS_SES_MAIL_SERVER')
@@ -34,7 +33,7 @@ def create_app():
     app.config['MAIL_USERNAME'] = os.getenv('AWS_SES_SMTP_USERNAME')
     app.config['MAIL_PASSWORD'] = os.getenv('AWS_SES_SMTP_PASSWORD')
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_DEFAULT_SENDER'] = ('STX Resources', 'hello@stxresources.org')
+    app.config['MAIL_DEFAULT_SENDER'] = ('STX Resources', config.SURMOUNT_GENERAL_EMAIL)
 
     # DB Config
     postgres_user = os.getenv('postgres_user', '')
@@ -59,18 +58,12 @@ def create_app():
     db.init_app(app)
     mail.init_app(app)
 
+    # Configure logging
+    configure_logging(app, mail)
+
     with app.app_context():
-
-        from .views import views
-        # from .blog import blog
-        # from .contact import contact_bp
-        # from .auth import auth_bp
+        
         from .models import supplier_login, admin_login
-
-        app.register_blueprint(views, url_prefix="/")
-        # app.register_blueprint(blog, url_prefix="/blog")
-        # app.register_blueprint(contact_bp, url_prefix="/contact")
-        # app.register_blueprint(auth_bp, url_prefix="/auth")
 
         db.create_all()
 
@@ -94,10 +87,7 @@ def create_app():
         # For each view function, assign user=current_user.
         @app.context_processor
         def inject_user():
-            if current_user.is_authenticated:
-                return dict(user=current_user)
-            else:
-                return dict(user=None)
+            return dict(user=current_user)
 
         # Set user type at startup instead of using before_first_request
         @app.before_request
@@ -123,6 +113,8 @@ def create_app():
         app.register_error_handler(405, handle_error)
         app.register_error_handler(503, handle_error)
 
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+        # Register blueprints
+        from project.utils.blueprints import register_blueprints
+        register_blueprints(app)
 
         return app

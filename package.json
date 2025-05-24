@@ -1,0 +1,29 @@
+{
+  "name": "star",
+  "version": "1.0.0",
+  "description": "This was a project I completed for a client. They needed a solution to help them automate the process for managing their contractor bids.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "postinstall": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bharding216/star.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bharding216/star/issues"
+  },
+  "homepage": "https://github.com/bharding216/star#readme",
+  "devDependencies": {
+    "@types/jquery": "^3.5.32",
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3"
+  }
+}
