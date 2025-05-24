@@ -9,7 +9,6 @@ from flask_login import current_user
 from flask_mail import Mail, Message
 
 from project.enums.app_mode import AppMode
-from project.utils.config import Config
 from project.utils.logging_filters import (
     NoEmailLogsFilter,
     ExcludeStaticAssets,
@@ -24,6 +23,15 @@ from project.utils.logging_filters import (
 
 # To include the user_id in the logs, do this:
 # current_app.logger.error("There was an error", extra={'user_id': '12345'})
+
+client_name = os.getenv('CLIENT_NAME')
+if client_name is None:
+    raise ValueError('CLIENT_NAME is not set')
+
+if client_name == 'star':
+    from project.config.star import Config
+elif client_name == 'se_legacy':
+    from project.config.se_legacy import Config
 
 ERROR_CODES_TO_SKIP_EMAIL = [
     'Error 401',
@@ -180,19 +188,17 @@ class EmailOnErrorHandler(logging.Handler):
         )
 
 def configure_logging(app, mail):
-    from project.utils.config import Config
-    config = Config()
     email_on_error_handler = None
     app_mode = os.getenv('APP_MODE', AppMode.PROD.value)
 
     # Create email handler regardless of mode for testing
-    email_on_error_handler = EmailOnErrorHandler(mail, config)
+    email_on_error_handler = EmailOnErrorHandler(mail, Config)
     email_on_error_handler.setLevel(logging.ERROR)  # Only send emails for ERROR level and above
 
     log_level = (
         logging.INFO
         if app_mode == AppMode.DEV
-        else getattr(logging, config.PROD_LOGGING_LEVEL, logging.ERROR)  # Changed default to ERROR
+        else getattr(logging, Config.PROD_LOGGING_LEVEL, logging.ERROR)  # Changed default to ERROR
     )
 
     dictConfig(

@@ -13,7 +13,7 @@
       "explainFiles": true,                                   /* Print names of files read during the compilation. */
       
       /* Emit */
-      "outDir": "./project/static/js",                        /* Specify an output folder for all emitted files. */
+      "outDir": "project/static/js",                        /* Specify an output folder for all emitted files. */
       "sourceMap": true,                                      /* Generate corresponding .map file. */
   
       /* Interop Constraints */

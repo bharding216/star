@@ -8,16 +8,13 @@ from flask_mail import Mail
 import os
 from helpers import generate_sitemap
 from dotenv import load_dotenv
-import logging
 from project.utils.logging import configure_logging
-from project.utils.config import Config
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 mail = Mail()
-config = Config()
 
-def create_app():
+def create_app(client_name='star'):
     app = Flask(__name__)
 
     load_dotenv()
@@ -25,7 +22,12 @@ def create_app():
     app.jinja_env.globals.update(generate_sitemap = generate_sitemap)
 
     # Configure app settings from Config class
-    app.config.from_object(config)
+    if client_name == 'star':
+        from project.config.star import Config
+        app.config.from_object(Config)
+    elif client_name == 'se_legacy':
+        from project.config.se_legacy import Config
+        app.config.from_object(Config)
 
     # Mail config settings for AWS SES:
     app.config['MAIL_SERVER'] = os.getenv('AWS_SES_MAIL_SERVER')
@@ -33,7 +35,7 @@ def create_app():
     app.config['MAIL_USERNAME'] = os.getenv('AWS_SES_SMTP_USERNAME')
     app.config['MAIL_PASSWORD'] = os.getenv('AWS_SES_SMTP_PASSWORD')
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_DEFAULT_SENDER'] = ('STX Resources', config.SURMOUNT_GENERAL_EMAIL)
+    app.config['MAIL_DEFAULT_SENDER'] = ('STX Resources', Config.SURMOUNT_GENERAL_EMAIL)
 
     # DB Config
     postgres_user = os.getenv('postgres_user', '')
@@ -87,7 +89,7 @@ def create_app():
         # For each view function, assign user=current_user.
         @app.context_processor
         def inject_user():
-            return dict(user=current_user)
+            return dict(user=current_user, client_name=client_name)
 
         # Set user type at startup instead of using before_first_request
         @app.before_request
