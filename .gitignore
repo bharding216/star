@@ -1,5 +1,8 @@
 **/__pycache__/
 .env
+.env.*
+.env.se_legacy
+.env.star
 flask_session/
 data.sql
 /node_modules
