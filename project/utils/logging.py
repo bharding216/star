@@ -4,7 +4,7 @@ import traceback
 from logging import LogRecord
 from logging.config import dictConfig
 import typing as t
-from flask import session, request
+from flask import session, request, current_app
 from flask_login import current_user
 from flask_mail import Mail, Message
 
@@ -44,22 +44,27 @@ class EmailOnErrorHandler(logging.Handler):
     def __init__(
         self, 
         mail: Mail, 
-        config: Config
+        config: Config,
+        app=None
     ):
         super().__init__()
         self.mail = mail
         self.config = config
+        self.app = app
 
         formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s - %(message)s')
         self.setFormatter(formatter)
 
     def emit(self, record: LogRecord):
         try:
-            if "404" in record.getMessage() or "429" in record.getMessage():
-                return  # Skip email for 404 and 429 errors
+            message = record.getMessage()
+            
+            # Skip email for 404 and 429 errors
+            if "404" in message or "429" in message:
+                return
 
             # Skip email for specific error codes
-            if any(error_string in record.getMessage() for error_string in ERROR_CODES_TO_SKIP_EMAIL):
+            if any(error_string in message for error_string in ERROR_CODES_TO_SKIP_EMAIL):
                 return
 
             # Only process errors at or above the logging.ERROR level
@@ -79,8 +84,12 @@ class EmailOnErrorHandler(logging.Handler):
                 # Build the email message body
                 message_body = self.build_email_body(record)
 
-                # Send the email
-                self.send_email(subject, sender, recipients, message_body)
+                # Send the email within application context
+                if self.app:
+                    with self.app.app_context():
+                        self.send_email(subject, sender, recipients, message_body)
+                else:
+                    print("Warning: No Flask app instance available for sending error email")
 
         except Exception as e:
             print(f"Unexpected error in emit: {e}")
@@ -136,7 +145,7 @@ class EmailOnErrorHandler(logging.Handler):
     def get_user_details(self):
         """Retrieve details about the current user."""
         try:
-            if current_user.is_authenticated:
+            if current_user and hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
                 return f"User ID: {current_user.id}"
             return "User ID: Not authenticated"
         except Exception as e:
@@ -192,7 +201,7 @@ def configure_logging(app, mail):
     app_mode = os.getenv('APP_MODE', AppMode.PROD.value)
 
     # Create email handler regardless of mode for testing
-    email_on_error_handler = EmailOnErrorHandler(mail, Config)
+    email_on_error_handler = EmailOnErrorHandler(mail, Config, app=app)
     email_on_error_handler.setLevel(logging.ERROR)  # Only send emails for ERROR level and above
 
     log_level = (

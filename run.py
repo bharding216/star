@@ -40,14 +40,21 @@ def main():
     # Load environment file
     load_dotenv(client_config['env_file'])
     
-    # Set CLIENT_NAME environment variable
+    # Set environment variables
     os.environ['CLIENT_NAME'] = client_config['client_name']
+    os.environ['PORT'] = str(client_config['port'])
     
     print(f"Starting {client_config['description']}...")
     print(f"Client: {client_config['client_name']}")
+    print(f"Port: {client_config['port']}")
+    print(f"Running at http://localhost:{client_config['port']}")
     
-    # Run the Flask app
-    subprocess.run([sys.executable, 'app.py'])
+    try:
+        # Run the Flask app
+        subprocess.run([sys.executable, 'app.py'])
+    except KeyboardInterrupt:
+        print("\nShutting down gracefully...")
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()

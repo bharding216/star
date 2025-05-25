@@ -15,4 +15,10 @@ if __name__ == '__main__':
     else:
         # Running locally
         port = int(os.environ.get('PORT', '2000'))
-        app.run(host='0.0.0.0', port=port, debug=True)
+        app.run(
+            host='0.0.0.0', 
+            port=port, 
+            debug=True,
+            ssl_context=None,  # Disable SSL for local development
+            threaded=True  # Enable threading to handle multiple requests
+        )

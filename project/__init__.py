@@ -17,7 +17,14 @@ mail = Mail()
 def create_app(client_name='star'):
     app = Flask(__name__)
 
-    load_dotenv()
+    # Load the correct .env file
+    env_file = f'.env.{client_name}'
+    load_dotenv(env_file)
+
+    # Configure Flask to handle HTTP/2
+    app.config['SERVER_NAME'] = None  # Allow any host
+    app.config['PREFERRED_URL_SCHEME'] = 'http'  # Use HTTP for local development
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
 
     app.jinja_env.globals.update(generate_sitemap = generate_sitemap)
 
@@ -28,6 +35,9 @@ def create_app(client_name='star'):
     elif client_name == 'se_legacy':
         from project.config.se_legacy import Config
         app.config.from_object(Config)
+
+    # Set secret key for session management
+    app.config['SECRET_KEY'] = os.getenv('secret_key', '')
 
     # Mail config settings for AWS SES:
     app.config['MAIL_SERVER'] = os.getenv('AWS_SES_MAIL_SERVER')
@@ -100,12 +110,12 @@ def create_app(client_name='star'):
         @app.before_request
         def redirect_to_https():
             # Ensure that all requests are secure (HTTPS)
-            if not request.is_secure and request.host != 'localhost:2000':
+            if not request.is_secure and request.host not in ['localhost:2000', 'localhost:2001']:
                 return redirect(request.url.replace('http://', 'https://'), code=301)
 
         def handle_error(error):
             error_code = getattr(error, 'code', 500)  # Get the error code, default to 500
-            return render_template('error.html', error_code=error_code), error_code
+            return render_template('shared/error.html', error_code=error_code), error_code
 
         app.register_error_handler(404, handle_error)
         app.register_error_handler(500, handle_error)
