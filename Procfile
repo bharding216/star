@@ -1,1 +1,1 @@
-web: npm install && npm run build && gunicorn app:app --timeout 300
+web: npm run build && gunicorn app:app --timeout 300
