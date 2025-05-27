@@ -28,11 +28,6 @@ client_name = os.getenv('CLIENT_NAME')
 if client_name is None:
     raise ValueError('CLIENT_NAME is not set')
 
-if client_name == 'star':
-    from project.config.star import Config
-elif client_name == 'se_legacy':
-    from project.config.se_legacy import Config
-
 ERROR_CODES_TO_SKIP_EMAIL = [
     'Error 401',
     'Error 404',
@@ -44,7 +39,7 @@ class EmailOnErrorHandler(logging.Handler):
     def __init__(
         self, 
         mail: Mail, 
-        config: Config,
+        config: t.Any,
         app=None
     ):
         super().__init__()
@@ -197,6 +192,14 @@ class EmailOnErrorHandler(logging.Handler):
         )
 
 def configure_logging(app, mail):
+    # Import Config here to avoid circular imports
+    if client_name == 'star':
+        from project.config.star import Config
+    elif client_name == 'se_legacy':
+        from project.config.se_legacy import Config
+    else:
+        raise ValueError(f"Unknown client_name: {client_name}")
+
     email_on_error_handler = None
     app_mode = os.getenv('APP_MODE', AppMode.PROD.value)
 
