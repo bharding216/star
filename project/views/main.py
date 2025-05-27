@@ -631,7 +631,7 @@ def view_bid_details(bid_id):
 def post_chat_message():
     message = request.form['message']
     bid_id = request.form['bid_id']
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     datetime_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
     with db.session() as db_session:
@@ -793,7 +793,7 @@ def apply_for_bid():
             flash('Please log in as a vendor to apply to this bid.', category='error')
             return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         if close_date_utc < now: # all times in UTC
             flash('The close date for this bid has passed. Please contact us if you have any questions.', category='error')
@@ -974,7 +974,7 @@ def upload_doc():
     if request.method == 'POST':
         bid_id = request.form['bid_id']
         files = request.files.getlist('file[]')
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
         secure_date_time_stamp = secure_filename(date_time_stamp)
         user_id = current_user.id
@@ -1211,7 +1211,7 @@ def current_bids():
         .all()
     )
 
-    current_datetime_utc = datetime.datetime.now(datetime.UTC)
+    current_datetime_utc = datetime.datetime.now(datetime.timezone.utc)
 
     bids_to_update = []
     for bid in open_bids_to_check:
