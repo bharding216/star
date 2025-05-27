@@ -1,5 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, flash, url_for, \
-    session, send_file, jsonify, make_response, Response, send_from_directory, current_app
+from flask import (
+    Blueprint, render_template, request, redirect, flash, url_for, 
+    session, send_file, jsonify, make_response, Response, send_from_directory, 
+    current_app
+)
 from flask_login import login_required, current_user, login_user
 from sqlalchemy import and_, inspect
 from project.models import (
@@ -11,6 +14,8 @@ import pytz
 from dateutil import parser
 import datetime
 from flask_mail import Message
+
+from project.services.auth_service import AuthService
 from .. import db, mail
 from helpers import generate_sitemap, utc_to_central
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,15 +31,17 @@ from botocore.exceptions import NoCredentialsError
 import requests
 from io import BytesIO, StringIO
 from werkzeug.datastructures import Headers
-import logging
 import csv
+from project.config.star import Config
+
+auth_service = AuthService()
 
 views = Blueprint('views', __name__)
 
 
 @views.route('/')
 def index():
-    return render_template('shared/index.html')
+    return render_template(Config.CLIENT_NAME + '/index.html')
 
 
 @views.route('/test-error')
@@ -78,38 +85,33 @@ def contact():
                 if not error:
                     msg = Message(
                         'New Contact Form Submission',
-                        sender = ("STAR", 'hello@stxresources.org'),
-                        recipients = [
-                            'brandon@getsurmount.com',
-                        ]
+                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
+                        recipients = Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS
                     )
                     
-
                     msg.html = render_template(
-                        f'shared/contact_email.html',
-                        first_name = first_name,
-                        last_name = last_name,
-                        email = email,
-                        phone = phone,
-                        message = message
+                        'shared/contact_email.html',
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        phone=phone,
+                        message=message
                     )
 
                     mail.send(msg)
 
                     return render_template(
-                        f'shared/contact_success.html', 
-                        first_name = first_name,
-                        email = email, 
-                        phone = phone, 
-                        message = message,
-                        user = current_user
+                        'shared/contact_success.html',
+                        first_name=first_name,
+                        email=email,
+                        phone=phone,
+                        message=message,
                     )
                 else:
                     flash(error, category='error')
                     recaptcha_site_key = os.getenv('reCAPTCHA_site_key')
                     return render_template(
-                        f'shared/contact.html', 
-                        user = current_user,
+                        'shared/contact.html', 
                         recaptcha_site_key = recaptcha_site_key,
                         first_name = first_name,
                         last_name = last_name,
@@ -118,7 +120,6 @@ def contact():
                         message = message
                     )
 
-
             else:
                 flash('Invalid reCAPTCHA. Please try again.')
                 return redirect(url_for('views.contact'))
@@ -126,16 +127,12 @@ def contact():
             flash('Please complete the reCAPTCHA.')
             return redirect(url_for('views.contact'))
 
-
-
+    # Handle GET request
     recaptcha_site_key = os.getenv('reCAPTCHA_site_key')
     return render_template(
         f'shared/contact.html', 
-        user = current_user,
-        recaptcha_site_key = recaptcha_site_key
+        recaptcha_site_key=recaptcha_site_key
     )
-
-
 
 
 @views.route('/registration-personal', methods=['GET', 'POST'])
@@ -149,29 +146,46 @@ def registration_personal():
         password1 = request.form['password1']
         password2 = request.form['password2']
 
-        email_already_exists = db.session.query(db.exists().where(supplier_info.email == email)).scalar()
+        email_already_exists = (
+            db.session.query(
+                db.exists().where(supplier_info.email == email)
+            )
+            .scalar()
+        )
         if email_already_exists:
             flash('That email is already in use. Please use another email.', category='error')
             return render_template(
-                f'shared/registration_personal.html',
-                user = current_user,
-                first_name = first_name,
-                last_name = last_name,
-                company_name = company_name,
-                email = email,
-                phone = phone
+                'shared/registration_personal.html',
+                first_name=first_name,
+                last_name=last_name,
+                company_name=company_name,
+                email=email,
+                phone=phone
+            )
+        
+        password_validation_result = auth_service.validate_password(password1)
+
+        if not password_validation_result['is_valid']:
+            flash(str(password_validation_result['error_message']), category='error')
+            return render_template(
+                'shared/registration_personal.html',
+                first_name=first_name,
+                last_name=last_name,
+                company_name=company_name,
+                email=email,
+                phone=phone
             )
 
         if password1 != password2:
             flash('Passwords do not match. Please try again.', category='error')
             return render_template(
-                f'shared/registration_personal.html',
-                user = current_user,
-                first_name = first_name,
-                last_name = last_name,
-                company_name = company_name,
-                email = email,
-                phone = phone
+                'shared/registration_personal.html',
+                user=current_user,
+                first_name=first_name,
+                last_name=last_name,
+                company_name=company_name,
+                email=email,
+                phone=phone
             )
 
         session['first_name'] = first_name
@@ -183,9 +197,19 @@ def registration_personal():
 
         return redirect(url_for('views.registration_location'))
 
+    first_name = session.get('first_name') or ''
+    last_name = session.get('last_name') or ''
+    company_name = session.get('company_name') or ''
+    email = session.get('email') or ''
+    phone = session.get('phone') or ''
+
     return render_template(
         f'shared/registration_personal.html',
-        user = current_user
+        first_name=first_name,
+        last_name=last_name,
+        company_name=company_name,
+        email=email,
+        phone=phone
     )
 
 
@@ -206,9 +230,19 @@ def registration_location():
 
         return redirect(url_for('views.registration_business'))
 
+    address_1 = session.get('address_1') or ''
+    address_2 = session.get('address_2') or ''
+    city = session.get('city') or ''
+    state = session.get('state') or ''
+    zip_code = session.get('zip_code') or ''
+
     return render_template(
         f'shared/registration_location.html',
-        user = current_user
+        address_1=address_1,
+        address_2=address_2,
+        city=city,
+        state=state,
+        zip_code=zip_code
     )
 
 
@@ -227,7 +261,6 @@ def registration_business():
             ssn = request.form['ssn']
             ssn_serialized = s.dumps([ssn, current_time_str])
             session['ssn'] = ssn_serialized
-            logging.info('ssn_serialized: %s', ssn_serialized)
 
             new_supplier_info_record = supplier_info(**{
                 'first_name': session['first_name'],
@@ -253,7 +286,6 @@ def registration_business():
                 'email': session['email'],
                 'password': session['password']
             })
-            logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_login_record)
             db.session.commit()
 
@@ -263,17 +295,12 @@ def registration_business():
                 ein_serialized = s.dumps([ein, current_time_str])
                 session['ein'] = ein_serialized
                 session['duns'] = ""
-                logging.info('serialized_ein: %s', ein_serialized)
-                logging.info('duns record is not applicable for this user')
 
             duns = request.form['duns']
             if duns:
                 duns_serialized = s.dumps([duns, current_time_str])
                 session['duns'] = duns_serialized
                 session['ein'] = ""
-                logging.info('serialized_duns: %s', duns_serialized)
-                logging.info('ein record is not applicable for this user')
-
 
             new_supplier_info_record = supplier_info(**{
                 'first_name': session['first_name'],
@@ -290,7 +317,6 @@ def registration_business():
                 'duns': session['duns'],
                 'legal_type': session['legal_structure']
             })
-            logging.info('new_supplier_info_record: %s', new_supplier_info_record)
             db.session.add(new_supplier_info_record)
             db.session.commit()
 
@@ -304,14 +330,12 @@ def registration_business():
             db.session.add(new_supplier_login_record)
             db.session.commit()
 
-        msg = Message('New Vendor Account Created',
-                        sender = ("STAR", 'hello@stxresources.org'),
-                        recipients = ['bharding80@gmail.com',
-                                      'CCallanen@wbpconsult.com'  
-                                    ]
-                        )
+        msg = Message(
+            'New Vendor Account Created',
+            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
+            recipients = Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS
+        )
 
-        
         msg.html = render_template(
             f'shared/new_vendor_account_email.html',
             vendor_info = new_supplier_info_record
@@ -319,18 +343,25 @@ def registration_business():
 
         mail.send(msg)
 
-        flash('New supplier profile created! Please login using your email and password to \
-              apply for open bids.', category='success')
+        flash(
+            'New supplier profile created! Please login using your email '
+            'and password to apply for open bids.', 
+            category='success'
+        )
         return redirect(url_for('views.index'))
 
+    legal_structure = session.get('legal_structure') or ''
+    ssn = session.get('ssn') or ''
+    ein = session.get('ein') or ''
+    duns = session.get('duns') or ''
 
     return render_template(
         f'shared/registration_business.html',
-        user = current_user
+        legal_structure=legal_structure,
+        ssn=ssn,
+        ein=ein,
+        duns=duns
     )
-
-
-
 
 
 @views.route('/admin-data-view')
@@ -406,9 +437,7 @@ def download_vendor_list():
 @views.route('/manage-project', methods=['GET', 'POST'])
 @login_required
 def manage_project():
-    logging.info("STARTING 'manage_project' VIEW FUNCTION.")
     if request.method == 'POST':
-        logging.info('ADMIN IS CREATING NEW BID')
         try:
             files = request.files.getlist('file[]')
 
@@ -416,7 +445,6 @@ def manage_project():
             now = datetime.datetime.now()
             date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")
             secure_date_time_stamp = secure_filename(date_time_stamp)
-            logging.info('SECURE DATETIME STAMP: %s', secure_date_time_stamp)
 
             user_id = current_user.id
             project_title = request.form['project_title']
@@ -453,17 +481,15 @@ def manage_project():
                 db_session.add(new_project)
                 db_session.commit()
                 new_project_id = new_project.id
-                logging.info('NEW PROJECT CREATED: %s', new_project_record)
-                logging.info("Added project record with ID: %s", new_project_id)
 
 
             # Configure S3 credentials
             s3 = boto3.client('s3', region_name='us-east-1',
-                            aws_access_key_id=os.getenv('s3_access_key_id'),
-                            aws_secret_access_key=os.getenv('s3_secret_access_key'))
+                aws_access_key_id=os.getenv('s3_access_key_id'),
+                aws_secret_access_key=os.getenv('s3_secret_access_key'))
             
             # Set the name of your S3 bucket
-            S3_BUCKET = 'star-uploads-bucket'
+            S3_BUCKET = Config.S3_BUCKET
 
             for file in files:
                 s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
@@ -480,25 +506,20 @@ def manage_project():
                     new_project = project_meta(**new_metadata_record)
                     db_session.add(new_project)
                     db_session.commit()
-                    logging.info("Added new project meta data record to db: %s", new_metadata_record)
 
 
             flash('Project created successfully! All files have been uploaded.', 'success')
-            logging.info("EXITING 'manage_project' VIEW FUNCTION.")
             return redirect(url_for('views.manage_project'))
 
         except Exception as e:
             error_message = f"An error occurred: {str(e)}"
-            logging.info("ERROR MESSAGE", error_message)
             flash(error_message, 'error')
-            logging.info("EXITING 'manage_project' VIEW FUNCTION.")
             return redirect(url_for('views.manage_project'))
 
 
     # Handle GET request:
     with db.session() as db_session:
         bid_list = db_session.query(bids).all()
-        logging.info('COMPLETE BID LIST: %s', bid_list)
 
         for bid in bid_list:
             close_date_utc = bid.close_date
@@ -512,14 +533,8 @@ def manage_project():
         )
 
 
-
-
-
-
 @views.route('/view-bid-details/<int:bid_id>', methods=['GET', 'POST'])
 def view_bid_details(bid_id):
-    logging.info('LOADING THE VIEW-BID-DETAILS PAGE')
-
     bid_object = db.session.query(bids).filter_by(id=bid_id).first()
     
     if not bid_object:
@@ -532,11 +547,7 @@ def view_bid_details(bid_id):
 
     project_meta_records = db.session.query(project_meta).filter_by(bid_id=bid_object.id).all()
 
-    logging.info('BID OBJECT: %s', bid_object)
-    logging.info('PROJECT META RECORDS: %s', project_meta_records)
-
     if 'user_type' not in session or session.get('user_type') is None:
-        logging.info('USER TYPE NOT IN SESSION')
         applied_status = 'not applied - undefined user type'
         applications_for_bid_and_supplier = []
         chat_history_records = []
@@ -562,10 +573,8 @@ def view_bid_details(bid_id):
         supplier_info_data = db.session.query(supplier_info.id, supplier_info.company_name).\
                                                 filter(supplier_info.id.in_(supplier_ids)).all()
         vendor_chat_list = {supplier_id: company_name for supplier_id, company_name in supplier_info_data}
-        logging.info('VENDOR CHATS AVAILABLE FOR THIS BID: %s', vendor_chat_list)
 
     elif session.get('user_type') == 'supplier':
-        logging.info('SUPPLIER ID: %s', current_user.supplier_id)
         applications_for_bid = []
         vendor_chat_list = []
 
@@ -598,15 +607,10 @@ def view_bid_details(bid_id):
             applications_for_bid_and_supplier = []
 
     else:
-        logging.info('WARNING: UNDEFINED USER TYPE')
         return 'Undefined user type. Please contact us so we can help resolve this error!'
 
 
     request_data = request.stream.read()
-
-    logging.info('APPLIED STATUS: %s', applied_status)
-    logging.info('APPLICATIONS FOR BID AND SUPPLIER: %s', applications_for_bid_and_supplier)
-    logging.info('CHAT HISTORY RECORDS: %s', chat_history_records)
 
     return render_template(
         f'shared/view_bid_details.html', 
@@ -648,8 +652,6 @@ def post_chat_message():
                 'supplier_id': supplier_id
             })
             
-            logging.info('new_comment: %s', new_comment)
-
             db.session.add(new_comment)
             db.session.commit()
 
@@ -659,8 +661,6 @@ def post_chat_message():
                             bid_id = bid_id,
                             supplier_id = supplier_id
                             ))
-
-
 
         else:
             return 'Error: Session user_type not set'
@@ -672,8 +672,6 @@ def post_chat_message():
             'bid_id': bid_id,
             'supplier_id': supplier_id
         })
-        
-        logging.info('new_comment: %s', new_comment)
 
         db.session.add(new_comment)
         db.session.commit()
@@ -700,10 +698,6 @@ def applications_summary_page():
             close_date_utc = bid.close_date
             close_date_central = utc_to_central(close_date_utc)
             bid.close_date = close_date_central
-
-        logging.info('supplier_id: %s', supplier_id)
-        logging.info('bid_ids: %s', bid_ids)
-        logging.info('bid_list: %s', bid_list)
 
         return render_template(
             f'shared/applications_summary_page.html',
@@ -775,10 +769,10 @@ def view_application(bid_id, supplier_id):
 
 
 
-@views.route('/apply-for-bid', methods=['GET', 'POST'])
+@views.route('/apply-for-bid', methods=['POST'])
 @login_required
 def apply_for_bid():
-    if request.method == 'POST':
+    try:
         files = request.files.getlist('file[]')
         bid_id = request.form['bid_id']
         bid = bids.query.get(bid_id)
@@ -789,18 +783,11 @@ def apply_for_bid():
             
         close_date_utc = bid.close_date
 
-        logging.info('VENDOR TRYING TO UPLOAD THESE FILES: %s', files)
-        logging.info('BID ID: %s', bid_id)
-
-        if 'user_type' in session:
-            logging.info('SESSION USER_TYPE: %s', session['user_type'])
-        else:
-            logging.info('WARNING: USER TYPE NOT IN SESSION')
+        if not 'user_type' in session:
             return 'We seem to be having an issue confirming your user log in credentials. Please contact us if you continue having issues.'
 
         if current_user.supplier_id:
             supplier_id = current_user.supplier_id
-            logging.info('SUPPLIER ID: %s', supplier_id)
 
         else: # user is logged in as admin
             flash('Please log in as a vendor to apply to this bid.', category='error')
@@ -819,11 +806,10 @@ def apply_for_bid():
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
         
-        S3_BUCKET = 'star-uploads-bucket'
+        S3_BUCKET = Config.S3_BUCKET
 
         for file in files:
             s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
-            logging.info('S3_FILENAME: %s', s3_filename)
 
             s3.upload_fileobj(file, S3_BUCKET, s3_filename)
 
@@ -838,10 +824,9 @@ def apply_for_bid():
                 new_application = applicant_docs(**new_applicant_record)
                 db_session.add(new_application)
                 db_session.commit()
-                logging.info('NEW DB RECORD CREATED')
 
         flash('Your application was successfully submitted! Feel free to log out. We will \
-              contact you via email or phone with next steps. Scroll down to view your application documents.', \
+                contact you via email or phone with next steps. Scroll down to view your application documents.', \
                 category='success')
 
 
@@ -855,9 +840,8 @@ def apply_for_bid():
 
         # Send email to admin
         admin_msg = Message('New Application Submitted',
-                        sender = ("STAR", 'hello@stxresources.org'),
-                        recipients = ['brandon@getsurmount.com'
-                                    ]
+                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
+                        recipients = [Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS]
                         )
 
         admin_msg.html = render_template('new_application_email.html',
@@ -870,7 +854,7 @@ def apply_for_bid():
         # Send email to vendor if supplier_object exists
         if supplier_object and supplier_object.email:
             msg_to_vendor = Message('Thank You For Applying',
-                            sender = ("STAR", 'hello@stxresources.org'),
+                            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
                             recipients = [supplier_object.email]
                             )
 
@@ -881,21 +865,18 @@ def apply_for_bid():
             )
 
             mail.send(msg_to_vendor)
-            logging.info('SUCCESS EMAIL SENT TO VENDOR')
-        else:
-            logging.warning('VENDOR EMAIL NOT SENT: supplier_object missing or has no email')
 
         return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
+    except Exception as e:
+        current_app.logger.error(f'Error applying for bid: {str(e)}')
+        flash('An error occurred while applying for this bid. Please try again later.', category='error')
+        return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
-    else: # user is trying to send a GET request
-        logging.info('User trying to send a GET request to "apply-for-bid" view function.')
-        return 'This URL only accepts POST requests. Please return to the STAR homepage.'
 
-
-@views.route('/download-application-doc', methods=['GET', 'POST'])
+@views.route('/download-application-doc', methods=['POST'])
 def download_application_doc():
-    if request.method == 'POST':
+    try:
         filename = request.form['filename']
         date_time_stamp = request.form['date_time_stamp']
 
@@ -910,10 +891,10 @@ def download_application_doc():
         s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
 
         s3 = boto3.client('s3', region_name='us-east-1',
-                        aws_access_key_id=os.getenv('s3_access_key_id'),
-                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+                aws_access_key_id=os.getenv('s3_access_key_id'),
+                aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-        S3_BUCKET = 'star-uploads-bucket'
+        S3_BUCKET = Config.S3_BUCKET
 
         url = s3.generate_presigned_url(
             ClientMethod='get_object',
@@ -933,9 +914,11 @@ def download_application_doc():
         response.headers['Content-Disposition'] = 'attachment; filename=' + download_filename
 
         return Response(BytesIO(response.content), headers=headers)
-    
-    # Return a default response for GET requests
-    return redirect(url_for('views.index'))
+
+    except Exception as e:
+        current_app.logger.error(f'Error downloading application document: {str(e)}')
+        flash('An error occurred while downloading this document. Please try again later.', category='error')
+        return redirect(url_for('views.index'))
 
 
 @views.route('/delete-application-doc', methods = ['GET', 'POST'])
@@ -949,30 +932,30 @@ def delete_application_doc():
     supplier_id = current_user.supplier.id
 
     s3_filename = f"{secure_date_time_stamp}_{secure_filename(filename)}"
-    logging.info('S3 FILENAME: %s', s3_filename)
 
     s3 = boto3.client('s3', region_name='us-east-1',
                     aws_access_key_id=os.getenv('s3_access_key_id'),
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-    S3_BUCKET = 'star-uploads-bucket'
+    S3_BUCKET = Config.S3_BUCKET
 
     try:
         s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
-        logging.info('S3 OBJECT DELETED: %s', s3_filename)
     except Exception as e:
-        logging.error('FAILED TO DELETE S3 OBJECT: %s', s3_filename)
-        logging.error(str(e))
+        current_app.logger.error('FAILED TO DELETE S3 OBJECT: %s', s3_filename)
+        current_app.logger.error(str(e))
 
     with db.session() as db_session:
         record_to_delete = db_session.query(applicant_docs).get(doc_id)
         db_session.delete(record_to_delete)
         db_session.commit()
 
-        applications_for_bid_and_supplier = db_session.query(applicant_docs) \
-                                                    .filter_by(bid_id = bid_id) \
-                                                    .filter(applicant_docs.supplier_id == supplier_id) \
-                                                    .all()
+        applications_for_bid_and_supplier = (
+            db_session.query(applicant_docs)
+            .filter_by(bid_id = bid_id)
+            .filter(applicant_docs.supplier_id == supplier_id)
+            .all()
+        )
 
         if applications_for_bid_and_supplier is not None:
             applied_status = 'applied'
@@ -1002,7 +985,7 @@ def upload_doc():
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
         
         # Set the name of your S3 bucket
-        S3_BUCKET = 'star-uploads-bucket'
+        S3_BUCKET = Config.S3_BUCKET
 
         for file in files:
             s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
@@ -1021,7 +1004,6 @@ def upload_doc():
                 db_session.commit()
 
         flash('File(s) uploaded successfully!', 'success')
-
         return redirect(url_for('views.view_bid_details',
                                 bid_id = bid_id))
     
@@ -1041,7 +1023,7 @@ def download_project():
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-        S3_BUCKET = 'star-uploads-bucket'
+        S3_BUCKET = Config.S3_BUCKET
 
         url = s3.generate_presigned_url(
             ClientMethod='get_object',
@@ -1067,14 +1049,6 @@ def download_project():
     return redirect(url_for('views.index'))
 
 
-
-
-
-
-
-
-
-
 @views.route('/delete-doc', methods = ['GET', 'POST'])
 @login_required
 def delete_doc():
@@ -1092,7 +1066,7 @@ def delete_doc():
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
     # Set the name of your S3 bucket
-    S3_BUCKET = 'star-uploads-bucket'
+    S3_BUCKET = Config.S3_BUCKET
 
     s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
 
@@ -1103,19 +1077,21 @@ def delete_doc():
         db_session.commit()
 
     flash('Document deleted successfully.', 'success')
-    bid_object = db_session.query(bids) \
-                            .filter_by(id = bid_id) \
-                            .first()
+    bid_object = (db_session.query(bids)
+            .filter_by(id = bid_id)
+            .first()
+        )
                             
     # If bid_object exists, get project_meta_records and render template
     if bid_object:
-        project_meta_records = db_session.query(project_meta) \
-                                        .filter_by(bid_id = bid_object.id) \
-                                        .all()
+        project_meta_records = (
+            db_session.query(project_meta)
+            .filter_by(bid_id = bid_object.id)
+            .all()
+        )
 
         return render_template(
             f'shared/view_bid_details.html', 
-            user = current_user,
             bid_object = bid_object,
             project_meta_records = project_meta_records
         )
@@ -1125,8 +1101,6 @@ def delete_doc():
         return redirect(url_for('views.index'))
 
 
-
-
 @views.route('/delete-project', methods=['GET', 'POST'])
 @login_required
 def delete_project():
@@ -1134,9 +1108,11 @@ def delete_project():
         bid_id = request.form['bid_id']
 
         with db.session() as db_session:
-            project_meta_records_to_delete = db_session.query(project_meta) \
-                                                       .filter_by(bid_id = bid_id) \
-                                                       .all()
+            project_meta_records_to_delete = (
+                db_session.query(project_meta)
+                .filter_by(bid_id = bid_id)
+                .all()
+            )
 
             # Configure S3 credentials
             s3 = boto3.client('s3', region_name='us-east-1',
@@ -1144,7 +1120,7 @@ def delete_project():
                             aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
             # Set the name of your S3 bucket
-            S3_BUCKET = 'star-uploads-bucket'
+            S3_BUCKET = Config.S3_BUCKET
 
             for record in project_meta_records_to_delete:
                 filename = record.title
@@ -1168,7 +1144,6 @@ def delete_project():
 
 
 
-
 @views.route("/vendor-settings", methods=['GET', 'POST'])
 @login_required
 def supplier_settings():
@@ -1178,7 +1153,6 @@ def supplier_settings():
 
         return render_template(
             f'shared/update_supplier_settings.html', 
-            user = current_user, 
             field_name = field_name
         )
 
@@ -1231,26 +1205,29 @@ def update_supplier_settings(field_name):
 
 @views.route('/current-bids', methods=['GET', 'POST'])
 def current_bids():
-    open_bids_to_check = bids.query.filter(bids.status == 'open').all()
-    logging.info('OPEN BIDS TO CHECK ON CLOSE DATE: %s', open_bids_to_check)
+    open_bids_to_check = (
+        db.session.query(bids)
+        .filter(bids.status == 'open')
+        .all()
+    )
 
-    current_datetime_utc = datetime.datetime.utcnow()
-    logging.info('CURRENT DATETIME UTC: %s', current_datetime_utc)
+    current_datetime_utc = datetime.datetime.now(datetime.UTC)
 
     bids_to_update = []
     for bid in open_bids_to_check:
-        logging.info('CHECKING THE CLOSE DATE ON THIS BID: %s', bid)
-        logging.info('UTC CLOSE DATE FOR THIS ^ BID: %s', bid.close_date)
         if bid.close_date < current_datetime_utc: # close_date has passed
             bid.status = 'closed'
             bids_to_update.append(bid)
-            logging.info('SUCCESSFULLY CLOSED BID: %s', bid)
+
 
     db.session.bulk_save_objects(bids_to_update)
     db.session.commit()
 
-    open_bids = bids.query.filter(bids.status == 'open').all()
-    logging.info('RESULTING OPEN BIDS: %s', open_bids)
+    open_bids = (
+        db.session.query(bids)
+        .filter(bids.status == 'open')
+        .all()
+    )
 
     for bid in open_bids:
         close_date_utc = bid.close_date
@@ -1259,14 +1236,15 @@ def current_bids():
 
     return render_template(
         f'shared/current_bids.html',
-        open_bids = open_bids,
-        user = current_user
+        open_bids=open_bids,
     )
 
 
 @views.route('/closed-bids', methods=['GET', 'POST'])
 def closed_bids():
-    closed_bids = bids.query.filter(bids.status == 'closed').all()
+    closed_bids = (
+        db.session.query(bids).filter(bids.status == 'closed').all()
+    )
 
     for bid in closed_bids:
         close_date_utc = bid.close_date
@@ -1276,14 +1254,15 @@ def closed_bids():
     return render_template(
         f'shared/closed_bids.html',
         closed_bids = closed_bids,
-        user = current_user
     )
 
 
 @views.route('/awarded-bids', methods=['GET', 'POST'])
 def awarded_bids():
 
-    awarded_bids = bids.query.filter(bids.status == 'awarded').all()
+    awarded_bids = (
+        db.session.query(bids).filter(bids.status == 'awarded').all()
+    )
 
     for bid in awarded_bids:
         close_date_utc = bid.close_date
@@ -1293,7 +1272,6 @@ def awarded_bids():
     return render_template(
         f'shared/awarded_bids.html',
         awarded_bids = awarded_bids,
-        user = current_user
     )
 
 
@@ -1301,7 +1279,6 @@ def awarded_bids():
 def bid_details():
     return render_template(
         f'shared/bid_details.html',
-        user = current_user
     )
 
 
@@ -1362,7 +1339,7 @@ def reset_password_request(user_type):
 
                 try:
                     msg = Message('Password Reset Request', 
-                        sender = ("STAR", 'hello@stxresources.org'),
+                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
                         recipients = [email])
 
                     msg.html = render_template(
@@ -1375,7 +1352,7 @@ def reset_password_request(user_type):
                     flash('Success! We sent you an email containing a link where you can reset your password.', category = 'success')
                     return redirect(url_for('views.index'))
                 except Exception as e:
-                    logging.error(f'Failed to send password reset email to {email}: {str(e)}')
+                    current_app.logger.error(f'Failed to send password reset email to {email}: {str(e)}')
                     flash('There was an error sending the password reset email. Please try again or contact support.', category = 'error')
                     return redirect(url_for(
                         'views.reset_password_request',
@@ -1391,7 +1368,7 @@ def reset_password_request(user_type):
     
     return render_template(
         f'shared/reset_password_form.html', 
-        user_type = user_type
+        user_type=user_type
     )
 
 @views.route("/reset_password/<token>", methods=["GET", "POST"])
@@ -1451,8 +1428,6 @@ def login_admin():
     if request.method == 'POST':
         email = request.form["email"].lower()
         password = request.form["password"]
-
-        logging.info('LOGGING IN THIS ADMIN EMAIL: %s', email)
 
         user = admin_login.query.filter_by(email = email).first()
         if user:
@@ -1527,12 +1502,19 @@ def privacy():
         f'shared/privacy.html'
     )
 
+@views.route('/robots.txt')
+def robots():
+    return send_from_directory(
+        os.path.join(current_app.root_path, 'static'), 
+        Config.CLIENT_NAME + '_robots.txt'
+    )
+
 @views.route('/test-email')
 @login_required
 def test_email():
     try:
         msg = Message('Test Email',
-            sender = ("STAR", 'hello@stxresources.org'),
+            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
             recipients = [current_user.email])
         
         msg.html = render_template(
@@ -1544,5 +1526,5 @@ def test_email():
         mail.send(msg)
         return 'Test email sent successfully!'
     except Exception as e:
-        logging.error(f'Failed to send test email: {str(e)}')
+        current_app.logger.error(f'Failed to send test email: {str(e)}')
         return f'Failed to send test email: {str(e)}'

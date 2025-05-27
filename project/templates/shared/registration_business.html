@@ -22,25 +22,6 @@
 
 {% block content %}
 
-    {% with messages = get_flashed_messages(with_categories=True) %}
-    {% if messages %}
-        <div class="container my-5">
-            {% for category, message in messages %}
-                {% if category == 'success' %}
-                    <div class="alert alert-success mx-5" role="alert">
-                        {{ message }}
-                    </div>
-                {% else %}
-                    <div class="alert alert-danger mx-5" role="alert">
-                        {{ message }}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% endwith %}
-
-
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -51,6 +32,10 @@
     <div class="row">
         <div class="col-12">
             <p>Page 3/3: Company legal information</p>
+        </div>
+
+        <div class="progress mb-4">
+            <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">Step 3</div>
         </div>
     </div>
 
@@ -78,13 +63,13 @@
 
                 <div class="form-floating mb-3" id="ssn_div">
                     <input type="text" class="form-control" id="ssn" name="ssn"
-                        placeholder="SSN/TIN">
+                        placeholder="SSN/TIN" required>
                     <label for="ssn">SSN/TIN</label>
                 </div>
 
                 <div class="form-floating mb-3" id="ein_div">
                     <input type="text" class="form-control" id="ein" name="ein"
-                        placeholder="EIN">
+                        placeholder="EIN" required>
                     <label for="ein">EIN</label>
                 </div>
 
@@ -97,7 +82,7 @@
 
                 <div class="my-5">
                     <select name="legal_structure" class="form-select" 
-                        style="width:auto" id="legal_structure">
+                        style="width:auto" id="legal_structure" required>
 
                         <option selected disabled="disabled">Choose a business structure</option>
                         <option value="sole">Sole Proprietorship</option>
@@ -109,39 +94,22 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Submit</button>
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="history.back()">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Submit
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
   
 </div>
 
-
-
-<script>
-    const individualRadio = document.getElementById('individual_radio');
-    const companyRadio = document.getElementById('company_radio');
-    const ssnInput = document.getElementById('ssn_div');
-    const einInput = document.getElementById('ein_div');
-    const dunsInput = document.getElementById('duns_div');
-  
-    individualRadio.addEventListener('change', () => {
-      if (individualRadio.checked) {
-        ssnInput.style.display = 'block';
-        einInput.style.display = 'none';
-        dunsInput.style.display = 'none';
-      }
-    });
-  
-    companyRadio.addEventListener('change', () => {
-      if (companyRadio.checked) {
-        ssnInput.style.display = 'none';
-        einInput.style.display = 'block';
-        dunsInput.style.display = 'block';
-      }
-    });
-  </script>
-  
-
+<script src="{{ url_for('static', filename='js/shared/registration.js') }}"></script>
 
 {% endblock %}

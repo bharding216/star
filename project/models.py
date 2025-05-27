@@ -1,8 +1,6 @@
 from . import db
-from sqlalchemy.dialects.mysql import BLOB
 from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer as Serializer
-from flask import Flask
 from sqlalchemy import DateTime, Date, Text
 
 class bids(db.Model):
@@ -46,10 +44,10 @@ class supplier_info(db.Model):
     company_name = db.Column(db.String(256))
     email = db.Column(db.String(320))
     phone = db.Column(db.String(20))
-    duns = db.Column(db.String(12))
+    duns = db.Column(db.String(500))
     legal_type = db.Column(db.String(45))
-    ssn = db.Column(db.String(12))
-    ein = db.Column(db.String(12))
+    ssn = db.Column(db.String(500))
+    ein = db.Column(db.String(500))
     address_1 = db.Column(db.String(100))
     address_2 = db.Column(db.String(100))
     city = db.Column(db.String(100))

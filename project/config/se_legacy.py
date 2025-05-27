@@ -18,6 +18,10 @@ class Config:
         'brandon@getsurmount.com',
     )  # tuple to ensure immutability
 
+    EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS: tuple[str, ...] = (
+        'brandon@getsurmount.com',
+    )
+
     SURMOUNT_GENERAL_EMAIL: str = 'hello@selegacyconnect.org'
 
     PROD_LOGGING_LEVEL: str = 'WARNING' 
@@ -57,3 +61,7 @@ class Config:
     MAX_PHOTOS_PER_MESSAGE: int = 3
     MAX_MB_PER_MMS: int = 5
     MAX_FILE_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
+    CLIENT_NAME: str = 'se_legacy'
+    CLIENT_NAME_TITLE: str = 'SE Legacy'
+    FROM_EMAIL: str = 'hello@selegacyconnect.org'
+    S3_BUCKET: str = 'se-legacy-bucket'

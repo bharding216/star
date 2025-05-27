@@ -6,24 +6,6 @@
 
 {% block content %}
 
-    {% with messages = get_flashed_messages(with_categories=True) %}
-    {% if messages %}
-        <div class="container my-5">
-            {% for category, message in messages %}
-                {% if category == 'success' %}
-                    <div class="alert alert-success mx-5" role="alert">
-                        {{ message }}
-                    </div>
-                {% else %}
-                    <div class="alert alert-danger mx-5" role="alert">
-                        {{ message }}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% endwith %}
-
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
@@ -35,6 +17,10 @@
         <div class="col-12">
             <p>Page 2/3: Company location information</p>
         </div>
+        
+        <div class="progress mb-4">
+            <div class="progress-bar" role="progressbar" style="width: 66%;" aria-valuenow="66" aria-valuemin="0" aria-valuemax="100">Step 2</div>
+        </div>
     </div>
 
     <div class="row">
@@ -43,7 +29,7 @@
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="address_1" id="address_1" 
-                        placeholder="Street Address 1"/> 
+                        placeholder="Street Address 1" required/> 
                     <label for="address_1">Street Address 1</label>
                 </div>
 
@@ -55,35 +41,38 @@
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="city" id="city" 
-                        placeholder="City"/> 
+                        placeholder="City" required/> 
                     <label for="city">City</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="state" id="state" 
-                        placeholder="State"/> 
+                        placeholder="State" required/> 
                     <label for="state">State</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="zip_code" id="zip_code" 
-                        placeholder="Zip Code"/> 
+                        placeholder="Zip Code" required/> 
                     <label for="zip_code">Zip Code</label>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Submit</button>
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="history.back()">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-arrow-right"></i>
+                        Next
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
-
-
-
-
-
-
-
+<script src="{{ url_for('static', filename='js/shared/registration.js') }}"></script>
 
 
 {% endblock %}
