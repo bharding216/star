@@ -14,6 +14,8 @@ import pytz
 from dateutil import parser
 import datetime
 from flask_mail import Message
+from botocore.config import Config
+from project.config.star import Config as StarConfig
 
 from project.services.auth_service import AuthService
 from .. import db, mail
@@ -32,7 +34,6 @@ import requests
 from io import BytesIO, StringIO
 from werkzeug.datastructures import Headers
 import csv
-from project.config.star import Config
 
 auth_service = AuthService()
 
@@ -41,7 +42,7 @@ views = Blueprint('views', __name__)
 
 @views.route('/')
 def index():
-    return render_template(Config.CLIENT_NAME + '/index.html')
+    return render_template(StarConfig.CLIENT_NAME + '/index.html')
 
 
 @views.route('/test-error')
@@ -85,8 +86,8 @@ def contact():
                 if not error:
                     msg = Message(
                         'New Contact Form Submission',
-                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-                        recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
+                        sender = (StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
+                        recipients = list(StarConfig.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
                     )
                     
                     msg.html = render_template(
@@ -332,8 +333,8 @@ def registration_business():
 
         msg = Message(
             'New Vendor Account Created',
-            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-            recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
+            sender = (StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
+            recipients = list(StarConfig.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
         )
 
         msg.html = render_template(
@@ -464,8 +465,7 @@ def manage_project():
             utc_timezone = pytz.timezone('UTC')
             datetime_obj_utc = datetime_obj_central_localized.astimezone(utc_timezone)
 
-            # First, create a new project record. Get the project record ID, then
-            # use that ID to create a 'project_meta' record for each file that was uploaded.
+            # First, create a new project record
             new_project_record = {
                 'title': project_title,
                 'type': bid_type,
@@ -482,31 +482,61 @@ def manage_project():
                 db_session.commit()
                 new_project_id = new_project.id
 
-
-            # Configure S3 credentials
-            s3 = boto3.client('s3', region_name='us-east-1',
+            # Configure S3 client with multipart upload settings
+            s3 = boto3.client(
+                's3', region_name='us-east-1',
                 aws_access_key_id=os.getenv('s3_access_key_id'),
-                aws_secret_access_key=os.getenv('s3_secret_access_key'))
+                aws_secret_access_key=os.getenv('s3_secret_access_key')
+            )
             
-            # Set the name of your S3 bucket
-            S3_BUCKET = Config.S3_BUCKET
+            S3_BUCKET = StarConfig.S3_BUCKET
+            MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB limit
 
             for file in files:
-                s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
-                s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+                if not file.filename:
+                    continue
 
-                new_metadata_record = {
-                    'title': file.filename,
-                    'uploaded_by_user_id': user_id,
-                    'date_time_stamp': date_time_stamp,
-                    'bid_id': new_project_id
-                }
+                # Check file size
+                file.seek(0, os.SEEK_END)
+                file_size = file.tell()
+                file.seek(0)
 
-                with db.session() as db_session:
-                    new_project = project_meta(**new_metadata_record)
-                    db_session.add(new_project)
-                    db_session.commit()
+                if file_size > MAX_FILE_SIZE:
+                    flash(f'File {file.filename} is too large. Maximum file size is 1GB.', category='error')
+                    return redirect(url_for('views.manage_project'))
 
+                s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+
+                try:
+                    # Use multipart upload for large files
+                    s3.upload_fileobj(
+                        file, 
+                        S3_BUCKET, 
+                        s3_filename,
+                        Config={
+                            'MultipartUpload': {
+                                'Threshold': 1024 * 25,  # 25MB
+                                'PartSize': 1024 * 25    # 25MB
+                            }
+                        }
+                    )
+
+                    new_metadata_record = {
+                        'title': file.filename,
+                        'uploaded_by_user_id': user_id,
+                        'date_time_stamp': date_time_stamp,
+                        'bid_id': new_project_id
+                    }
+
+                    with db.session() as db_session:
+                        new_project = project_meta(**new_metadata_record)
+                        db_session.add(new_project)
+                        db_session.commit()
+
+                except Exception as e:
+                    current_app.logger.error(f'Error uploading file {file.filename}: {str(e)}')
+                    flash(f'Error uploading {file.filename}. Please try again.', category='error')
+                    return redirect(url_for('views.manage_project'))
 
             flash('Project created successfully! All files have been uploaded.', 'success')
             return redirect(url_for('views.manage_project'))
@@ -515,7 +545,6 @@ def manage_project():
             error_message = f"An error occurred: {str(e)}"
             flash(error_message, 'error')
             return redirect(url_for('views.manage_project'))
-
 
     # Handle GET request:
     with db.session() as db_session:
@@ -528,8 +557,8 @@ def manage_project():
 
         return render_template(
             f'shared/manage_project.html',
-            user = current_user,
-            bid_list = bid_list
+            user=current_user,
+            bid_list=bid_list
         )
 
 
@@ -788,7 +817,6 @@ def apply_for_bid():
 
         if current_user.supplier_id:
             supplier_id = current_user.supplier_id
-
         else: # user is logged in as admin
             flash('Please log in as a vendor to apply to this bid.', category='error')
             return redirect(url_for('views.view_bid_details', bid_id=bid_id))
@@ -799,69 +827,93 @@ def apply_for_bid():
             flash('The close date for this bid has passed. Please contact us if you have any questions.', category='error')
             return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
-        date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
-        secure_date_time_stamp = secure_filename(date_time_stamp)
-
-        s3 = boto3.client('s3', region_name='us-east-1',
-                        aws_access_key_id=os.getenv('s3_access_key_id'),
-                        aws_secret_access_key=os.getenv('s3_secret_access_key'))
+        # Configure S3 client with multipart upload settings
+        s3 = boto3.client(
+            's3', region_name='us-east-1',
+            aws_access_key_id=os.getenv('s3_access_key_id'),
+            aws_secret_access_key=os.getenv('s3_secret_access_key')
+        )
         
-        S3_BUCKET = Config.S3_BUCKET
+        S3_BUCKET = StarConfig.S3_BUCKET
+        MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB limit
 
         for file in files:
-            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
+            if not file.filename:
+                continue
 
-            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+            # Check file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
 
-            new_applicant_record = {
-                'filename': file.filename,
-                'date_time_stamp': date_time_stamp,
-                'supplier_id': supplier_id,
-                'bid_id': bid_id
-            }
+            if file_size > MAX_FILE_SIZE:
+                flash(f'File {file.filename} is too large. Maximum file size is 1GB.', category='error')
+                return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
-            with db.session() as db_session:
-                new_application = applicant_docs(**new_applicant_record)
-                db_session.add(new_application)
-                db_session.commit()
+            date_time_stamp = now.strftime("%Y-%m-%d %H:%M:%S")      
+            secure_date_time_stamp = secure_filename(date_time_stamp)
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+
+            try:
+                # Use multipart upload for large files
+                s3.upload_fileobj(
+                    file, 
+                    S3_BUCKET, 
+                    s3_filename,
+                    Config={
+                        'MultipartUpload': {
+                            'Threshold': 1024 * 25,  # 25MB
+                            'PartSize': 1024 * 25    # 25MB
+                        }
+                    }
+                )
+
+                new_applicant_record = {
+                    'filename': file.filename,
+                    'date_time_stamp': date_time_stamp,
+                    'supplier_id': supplier_id,
+                    'bid_id': bid_id
+                }
+
+                with db.session() as db_session:
+                    new_application = applicant_docs(**new_applicant_record)
+                    db_session.add(new_application)
+                    db_session.commit()
+
+            except Exception as e:
+                current_app.logger.error(f'Error uploading file {file.filename}: {str(e)}')
+                flash(f'Error uploading {file.filename}. Please try again.', category='error')
+                return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
         flash('Your application was successfully submitted! Feel free to log out. We will \
                 contact you via email or phone with next steps. Scroll down to view your application documents.', \
                 category='success')
 
-
-        bid_object = db_session.query(bids) \
-                            .filter_by(id = bid_id) \
-                            .first()
-
-        supplier_object = db_session.query(supplier_info) \
-                                        .filter_by(id = supplier_id) \
-                                        .first()
+        # Send email notifications
+        bid_object = db.session.query(bids).filter_by(id=bid_id).first()
+        supplier_object = db.session.query(supplier_info).filter_by(id=supplier_id).first()
 
         # Send email to admin
         admin_msg = Message('New Application Submitted',
-                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-                        recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
-                        )
+                        sender=(StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
+                        recipients=list(StarConfig.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS))
 
         admin_msg.html = render_template('new_application_email.html',
-                                bid_object = bid_object,
-                                supplier_object = supplier_object
-                                )
+                                bid_object=bid_object,
+                                supplier_object=supplier_object)
 
         mail.send(admin_msg)
 
         # Send email to vendor if supplier_object exists
         if supplier_object and supplier_object.email:
             msg_to_vendor = Message('Thank You For Applying',
-                            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-                            recipients = [supplier_object.email]
-                            )
+                            sender=(StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
+                            recipients=[supplier_object.email])
 
             msg_to_vendor.html = render_template(
                 f'shared/new_app_email_to_vendor.html',
-                bid_object = bid_object,
-                supplier_object = supplier_object
+                bid_object=bid_object,
+                supplier_object=supplier_object
             )
 
             mail.send(msg_to_vendor)
@@ -894,7 +946,7 @@ def download_application_doc():
                 aws_access_key_id=os.getenv('s3_access_key_id'),
                 aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-        S3_BUCKET = Config.S3_BUCKET
+        S3_BUCKET = StarConfig.S3_BUCKET
 
         url = s3.generate_presigned_url(
             ClientMethod='get_object',
@@ -937,7 +989,7 @@ def delete_application_doc():
                     aws_access_key_id=os.getenv('s3_access_key_id'),
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-    S3_BUCKET = Config.S3_BUCKET
+    S3_BUCKET = StarConfig.S3_BUCKET
 
     try:
         s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
@@ -979,33 +1031,57 @@ def upload_doc():
         secure_date_time_stamp = secure_filename(date_time_stamp)
         user_id = current_user.id
 
-        # Configure S3 credentials
-        s3 = boto3.client('s3', region_name='us-east-1',
+        # Configure S3 client
+        s3 = boto3.client('s3', 
+                        region_name='us-east-1',
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
         
-        # Set the name of your S3 bucket
-        S3_BUCKET = Config.S3_BUCKET
+        S3_BUCKET = StarConfig.S3_BUCKET
+        MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB limit
 
         for file in files:
-            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename or '')}"
-            s3.upload_fileobj(file, S3_BUCKET, s3_filename)
+            if not file.filename:
+                continue
 
-            new_metadata_record = {
-                'title': file.filename,
-                'uploaded_by_user_id': user_id,
-                'date_time_stamp': date_time_stamp,
-                'bid_id': bid_id
-            }
+            # Check file size
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
 
-            with db.session() as db_session:
-                new_project = project_meta(**new_metadata_record)
-                db_session.add(new_project)
-                db_session.commit()
+            if file_size > MAX_FILE_SIZE:
+                flash(f'File {file.filename} is too large. Maximum file size is 1GB.', category='error')
+                return redirect(url_for('views.view_bid_details', bid_id=bid_id))
+
+            s3_filename = f"{secure_date_time_stamp}_{secure_filename(file.filename)}"
+
+            try:
+                # Upload file to S3
+                s3.upload_fileobj(
+                    file, 
+                    S3_BUCKET, 
+                    s3_filename
+                )
+
+                new_metadata_record = {
+                    'title': file.filename,
+                    'uploaded_by_user_id': user_id,
+                    'date_time_stamp': date_time_stamp,
+                    'bid_id': bid_id
+                }
+
+                with db.session() as db_session:
+                    new_project = project_meta(**new_metadata_record)
+                    db_session.add(new_project)
+                    db_session.commit()
+
+            except Exception as e:
+                current_app.logger.error(f'Error uploading file {file.filename}: {str(e)}')
+                flash(f'Error uploading {file.filename}. Please try again.', category='error')
+                return redirect(url_for('views.view_bid_details', bid_id=bid_id))
 
         flash('File(s) uploaded successfully!', 'success')
-        return redirect(url_for('views.view_bid_details',
-                                bid_id = bid_id))
+        return redirect(url_for('views.view_bid_details', bid_id=bid_id))
     
     # Add default return for GET requests
     return redirect(url_for('views.index'))
@@ -1023,7 +1099,7 @@ def download_project():
                         aws_access_key_id=os.getenv('s3_access_key_id'),
                         aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
-        S3_BUCKET = Config.S3_BUCKET
+        S3_BUCKET = StarConfig.S3_BUCKET
 
         url = s3.generate_presigned_url(
             ClientMethod='get_object',
@@ -1066,7 +1142,7 @@ def delete_doc():
                     aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
     # Set the name of your S3 bucket
-    S3_BUCKET = Config.S3_BUCKET
+    S3_BUCKET = StarConfig.S3_BUCKET
 
     s3.delete_object(Bucket=S3_BUCKET, Key=s3_filename)
 
@@ -1120,7 +1196,7 @@ def delete_project():
                             aws_secret_access_key=os.getenv('s3_secret_access_key'))
 
             # Set the name of your S3 bucket
-            S3_BUCKET = Config.S3_BUCKET
+            S3_BUCKET = StarConfig.S3_BUCKET
 
             for record in project_meta_records_to_delete:
                 filename = record.title
@@ -1339,7 +1415,7 @@ def reset_password_request(user_type):
 
                 try:
                     msg = Message('Password Reset Request', 
-                        sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
+                        sender = (StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
                         recipients = [email])
 
                     msg.html = render_template(
@@ -1506,7 +1582,7 @@ def privacy():
 def robots():
     return send_from_directory(
         os.path.join(current_app.root_path, 'static'), 
-        Config.CLIENT_NAME + '_robots.txt'
+        StarConfig.CLIENT_NAME + '_robots.txt'
     )
 
 @views.route('/test-email')
@@ -1514,7 +1590,7 @@ def robots():
 def test_email():
     try:
         msg = Message('Test Email',
-            sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
+            sender = (StarConfig.CLIENT_NAME_TITLE, StarConfig.FROM_EMAIL),
             recipients = [current_user.email])
         
         msg.html = render_template(

@@ -2,9 +2,9 @@
 import sys
 import os
 import subprocess
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
-# Define your client mappings
+# Client config for startup
 CLIENTS = {
     'star': {
         'env_file': '.env.star',
@@ -37,11 +37,11 @@ def main():
     
     client_config = CLIENTS[client_key]
     
-    # Load environment file
-    load_dotenv(client_config['env_file'])
-    
     # Set environment variables
-    os.environ['CLIENT_NAME'] = client_config['client_name']
+    env_vars = dotenv_values(client_config['env_file'])
+    for key, value in env_vars.items():
+        if value is not None:
+            os.environ[key] = value
     os.environ['PORT'] = str(client_config['port'])
     
     print(f"Starting {client_config['description']}...")
