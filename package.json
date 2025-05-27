@@ -21,7 +21,7 @@
     "url": "https://github.com/bharding216/star/issues"
   },
   "homepage": "https://github.com/bharding216/star#readme",
-  "devDependencies": {
+  "dependencies": {
     "@types/jquery": "^3.5.32",
     "@types/node": "^22.15.21",
     "typescript": "^5.8.3"
