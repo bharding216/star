@@ -1,5 +1,3 @@
-console.log('Registration script loaded');
-
 function validatePassword(password: string) {
     if (password.length < 8) {
         return false;
@@ -25,6 +23,23 @@ function validateEmail(email: string) {
 function validatePhone(phone: string) {
     const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phone);
+}
+
+function validateZipCode(zipCode: string) {
+    const zipRegex = /^\d{5}$/;
+    return zipRegex.test(zipCode);
+}
+
+function validateCity(city: string) {
+    // Allows letters, spaces, periods, hyphens, and apostrophes
+    const cityRegex = /^[A-Za-z\s.'-]+$/;
+    return cityRegex.test(city);
+}
+
+function validateState(state: string) {
+    // Allows letters, spaces, periods, hyphens, and apostrophes
+    const stateRegex = /^[A-Za-z\s.'-]+$/;
+    return stateRegex.test(state);
 }
 
 const individualRadio = document.getElementById('individual_radio') as HTMLInputElement;
@@ -56,21 +71,40 @@ function setupRealTimeValidation() {
     const form = document.querySelector('form');
     if (!form) return;
 
-    const inputs = form.querySelectorAll('input');
+    const inputs = form.querySelectorAll('input, select');
     inputs.forEach(input => {
-        input.addEventListener('input', function() {
+        // Validate on input/change
+        input.addEventListener('input', function(this: HTMLInputElement | HTMLSelectElement) {
             validateInput(this);
         });
+        
+        // Validate on blur
+        input.addEventListener('blur', function(this: HTMLInputElement | HTMLSelectElement) {
+            validateInput(this);
+        });
+
+        // For select elements, also validate on change
+        if (input instanceof HTMLSelectElement) {
+            input.addEventListener('change', function(this: HTMLSelectElement) {
+                console.log('Select change event:', this.name, this.value);
+                validateInput(this);
+            });
+        }
     });
 }
 
 // Track validation state of all fields
 const fieldValidationState: { [key: string]: boolean } = {};
 
-function validateInput(input: HTMLInputElement) {
+function validateInput(input: HTMLInputElement | HTMLSelectElement) {
     const value = input.value.trim();
     let isValid = true;
     let errorMessage = '';
+
+    console.log(`Validating ${input.name}:`, value, 'type:', input.type);
+
+    // Get the current radio selection
+    const isIndividual = (document.getElementById('individual_radio') as HTMLInputElement)?.checked;
 
     switch(input.name) {
         case 'email':
@@ -91,23 +125,52 @@ function validateInput(input: HTMLInputElement) {
             errorMessage = 'Passwords do not match';
             break;
         case 'ssn':
-            isValid = /^\d{9}$/.test(value);
+            isValid = isIndividual ? /^\d{9}$/.test(value) : true;
             errorMessage = 'Please enter a valid 9-digit SSN';
             break;
         case 'ein':
-            isValid = /^\d{9}$/.test(value);
+            isValid = !isIndividual ? /^\d{9}$/.test(value) : true;
             errorMessage = 'Please enter a valid 9-digit EIN';
             break;
         case 'duns':
             isValid = value === '' || /^\d{9}$/.test(value);
             errorMessage = 'Please enter a valid 9-digit DUNS number';
             break;
+        case 'zip_code':
+            isValid = validateZipCode(value);
+            errorMessage = 'Please enter a valid 5-digit zip code';
+            break;
+        case 'address_1':
+            isValid = value.length > 0;
+            errorMessage = 'Street address is required';
+            break;
+        case 'city':
+            isValid = validateCity(value);
+            errorMessage = 'City can only contain letters, spaces, and common punctuation';
+            break;
+        case 'state':
+            isValid = validateState(value);
+            errorMessage = 'State can only contain letters, spaces, and common punctuation';
+            break;
+        case 'legal_structure':
+            isValid = value !== '' && value !== 'Choose a business structure' && value !== 'Choose a business structure';
+            errorMessage = 'Please select a business structure';
+            break;
     }
 
-    input.classList.toggle('is-valid', isValid && value !== '');
+    console.log(`${input.name} validation result:`, { isValid, value, errorMessage });
+
+    // Update validation classes
+    if (value === '') {
+        input.classList.remove('is-valid', 'is-invalid');
+    } else {
+        input.classList.toggle('is-valid', isValid);
+        input.classList.toggle('is-invalid', !isValid);
+    }
 
     // Update validation state
     fieldValidationState[input.name] = isValid && value !== '';
+    console.log('Updated validation state:', fieldValidationState);
 
     // Update or create error message
     let errorDiv = input.parentElement?.querySelector('.invalid-feedback');
@@ -129,15 +192,50 @@ function updateSubmitButtonState() {
     const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
     if (!submitButton) return;
 
+    // Get the current radio selection
+    const isIndividual = (document.getElementById('individual_radio') as HTMLInputElement)?.checked;
+    console.log('Current radio selection:', isIndividual ? 'individual' : 'company');
+
     // Get all required inputs on the current page
     const requiredInputs = Array.from(form.querySelectorAll('input[required], select[required]'));
+    console.log('Required inputs:', requiredInputs.map(input => {
+        const inputElement = input as HTMLInputElement | HTMLSelectElement;
+        const display = window.getComputedStyle(input).display;
+        const isHidden = display === 'none';
+        const shouldValidate = (inputElement.name === 'ssn' && isIndividual) || 
+                             ((inputElement.name === 'ein' || inputElement.name === 'duns') && !isIndividual) ||
+                             inputElement.name === 'legal_structure';
+        
+        return {
+            name: inputElement.name,
+            value: inputElement.value,
+            display,
+            isHidden,
+            shouldValidate,
+            isValid: fieldValidationState[inputElement.name]
+        };
+    }));
     
-    // Check if all required fields are valid
+    // Check if all required fields are valid, excluding hidden ones
     const allFieldsValid = requiredInputs.every(input => {
         const inputElement = input as HTMLInputElement;
-        return fieldValidationState[inputElement.name] === true;
-    });
+        const shouldValidate = (inputElement.name === 'ssn' && isIndividual) || 
+                             ((inputElement.name === 'ein' || inputElement.name === 'duns') && !isIndividual) ||
+                             inputElement.name === 'legal_structure';
+        
+        if (!shouldValidate) {
+            console.log(`Skipping field ${inputElement.name} - not applicable for current selection`);
+            return true;
+        }
 
+        const isValid = fieldValidationState[inputElement.name] === true;
+        console.log(`Field ${inputElement.name}: isValid=${isValid}, value=${inputElement.value}, shouldValidate=${shouldValidate}`);
+        return isValid;
+    });
+    
+    console.log('All fields valid:', allFieldsValid);
+    console.log('Current validation state:', fieldValidationState);
+    
     // Update button state
     submitButton.disabled = !allFieldsValid;
     
@@ -153,7 +251,6 @@ function updateSubmitButtonState() {
 
 // Initialize validation when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded');
     
     // Initialize password toggles
     const password1Input = document.querySelector('[name="password1"]') as HTMLInputElement;
@@ -203,7 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         inputs.forEach(input => {
             const inputElement = input as HTMLInputElement;
             if (inputElement.name) {
-                fieldValidationState[inputElement.name] = false;
+                // Validate each field on page load
+                validateInput(inputElement);
             }
         });
         updateSubmitButtonState();
@@ -223,9 +321,12 @@ function setupFormPersistence() {
             const input = form.querySelector(`[name="${key}"]`) as HTMLInputElement;
             if (input) {
                 input.value = data[key];
+                // Trigger validation after setting the value
                 validateInput(input);
             }
         });
+        // Update submit button state after loading all data
+        updateSubmitButtonState();
     }
 
     // Save data on input

@@ -29,31 +29,31 @@
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="address_1" id="address_1" 
-                        placeholder="Street Address 1" required/> 
+                        placeholder="Street Address 1" value="{{ address_1 }}" required/> 
                     <label for="address_1">Street Address 1</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="address_2" id="address_2" 
-                        placeholder="Street Address 2"/> 
+                        placeholder="Street Address 2" value="{{ address_2 }}"/> 
                     <label for="address_2">Street Address 2</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="city" id="city" 
-                        placeholder="City" required/> 
+                        placeholder="City" value="{{ city }}" required/> 
                     <label for="city">City</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="state" id="state" 
-                        placeholder="State" required/> 
+                        placeholder="State" value="{{ state }}" required/> 
                     <label for="state">State</label>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input type="text" class="form-control" name="zip_code" id="zip_code" 
-                        placeholder="Zip Code" required/> 
+                        placeholder="Zip Code" pattern="\d{5}" maxlength="5" value="{{ zip_code }}" required/> 
                     <label for="zip_code">Zip Code</label>
                 </div>
 

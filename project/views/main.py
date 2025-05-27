@@ -333,7 +333,7 @@ def registration_business():
         msg = Message(
             'New Vendor Account Created',
             sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-            recipients = Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS
+            recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
         )
 
         msg.html = render_template(
@@ -841,7 +841,7 @@ def apply_for_bid():
         # Send email to admin
         admin_msg = Message('New Application Submitted',
                         sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-                        recipients = [Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS]
+                        recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
                         )
 
         admin_msg.html = render_template('new_application_email.html',
