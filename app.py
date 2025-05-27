@@ -5,7 +5,10 @@ from project import create_app
 
 # Add more detailed logging
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 try:
@@ -38,8 +41,14 @@ try:
         else:
             logger.warning(f"{var}: NOT SET")
     
-    app = create_app(client_name)
-    logger.info("App created successfully!")
+    try:
+        app = create_app(client_name)
+        logger.info("App created successfully!")
+    except Exception as app_error:
+        logger.error(f"Error during app creation: {str(app_error)}")
+        logger.error(f"App error type: {type(app_error).__name__}")
+        logger.error(f"App error traceback: {traceback.format_exc()}")
+        raise
     
 except Exception as e:
     logger.error(f"Failed to create app: {str(e)}")
