@@ -75,7 +75,6 @@ function setupRealTimeValidation() {
         // For select elements, also validate on change
         if (input instanceof HTMLSelectElement) {
             input.addEventListener('change', function () {
-                console.log('Select change event:', this.name, this.value);
                 validateInput(this);
             });
         }
@@ -84,11 +83,10 @@ function setupRealTimeValidation() {
 // Track validation state of all fields
 const fieldValidationState = {};
 function validateInput(input) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const value = input.value.trim();
     let isValid = true;
     let errorMessage = '';
-    console.log(`Validating ${input.name}:`, value, 'type:', input.type);
     // Get the current radio selection
     const isIndividual = (_a = document.getElementById('individual_radio')) === null || _a === void 0 ? void 0 : _a.checked;
     switch (input.name) {
@@ -142,7 +140,6 @@ function validateInput(input) {
             errorMessage = 'Please select a business structure';
             break;
     }
-    console.log(`${input.name} validation result:`, { isValid, value, errorMessage });
     // Update validation classes
     if (value === '') {
         input.classList.remove('is-valid', 'is-invalid');
@@ -153,7 +150,6 @@ function validateInput(input) {
     }
     // Update validation state
     fieldValidationState[input.name] = isValid && value !== '';
-    console.log('Updated validation state:', fieldValidationState);
     // Update or create error message
     let errorDiv = (_b = input.parentElement) === null || _b === void 0 ? void 0 : _b.querySelector('.invalid-feedback');
     if (!errorDiv) {
@@ -162,6 +158,22 @@ function validateInput(input) {
         (_c = input.parentElement) === null || _c === void 0 ? void 0 : _c.appendChild(errorDiv);
     }
     errorDiv.textContent = errorMessage;
+    // If the errorDiv for the password fields is not empty, add some bottom margin to the eye icon
+    const eyeIcon = (_d = input.parentElement) === null || _d === void 0 ? void 0 : _d.querySelector('.password-toggle-icon');
+    if (input.type === 'password' || input.type === 'text') {
+        if (!input.classList.contains('is-invalid')) {
+            console.log('errorDiv is not visible');
+            if (eyeIcon) {
+                eyeIcon.style.paddingBottom = '0rem';
+            }
+        }
+        else {
+            console.log('errorDiv is visible');
+            if (eyeIcon) {
+                eyeIcon.style.paddingBottom = '1.5rem';
+            }
+        }
+    }
     // Update submit button state
     updateSubmitButtonState();
 }
@@ -175,25 +187,8 @@ function updateSubmitButtonState() {
         return;
     // Get the current radio selection
     const isIndividual = (_a = document.getElementById('individual_radio')) === null || _a === void 0 ? void 0 : _a.checked;
-    console.log('Current radio selection:', isIndividual ? 'individual' : 'company');
     // Get all required inputs on the current page
     const requiredInputs = Array.from(form.querySelectorAll('input[required], select[required]'));
-    console.log('Required inputs:', requiredInputs.map(input => {
-        const inputElement = input;
-        const display = window.getComputedStyle(input).display;
-        const isHidden = display === 'none';
-        const shouldValidate = (inputElement.name === 'ssn' && isIndividual) ||
-            ((inputElement.name === 'ein' || inputElement.name === 'duns') && !isIndividual) ||
-            inputElement.name === 'legal_structure';
-        return {
-            name: inputElement.name,
-            value: inputElement.value,
-            display,
-            isHidden,
-            shouldValidate,
-            isValid: fieldValidationState[inputElement.name]
-        };
-    }));
     // Check if all required fields are valid, excluding hidden ones
     const allFieldsValid = requiredInputs.every(input => {
         const inputElement = input;
@@ -201,15 +196,11 @@ function updateSubmitButtonState() {
             ((inputElement.name === 'ein' || inputElement.name === 'duns') && !isIndividual) ||
             inputElement.name === 'legal_structure';
         if (!shouldValidate) {
-            console.log(`Skipping field ${inputElement.name} - not applicable for current selection`);
             return true;
         }
         const isValid = fieldValidationState[inputElement.name] === true;
-        console.log(`Field ${inputElement.name}: isValid=${isValid}, value=${inputElement.value}, shouldValidate=${shouldValidate}`);
         return isValid;
     });
-    console.log('All fields valid:', allFieldsValid);
-    console.log('Current validation state:', fieldValidationState);
     // Update button state
     submitButton.disabled = !allFieldsValid;
     // Add visual feedback for disabled state
