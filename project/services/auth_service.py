@@ -3,7 +3,7 @@ import os
 
 class AuthService:
     def __init__(self):
-        self.key = os.getenv('ENCRYPTION_KEY')
+        self.key = os.getenv('secret_key')
 
     def validate_password(self, password: str) -> dict[str, bool | str]:
         if len(password) < 8:
