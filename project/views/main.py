@@ -86,7 +86,7 @@ def contact():
                     msg = Message(
                         'New Contact Form Submission',
                         sender = (Config.CLIENT_NAME_TITLE, Config.FROM_EMAIL),
-                        recipients = Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS
+                        recipients = list(Config.EMAILS_TO_RECEIVE_CONTACT_FORM_SUBMISSIONS)
                     )
                     
                     msg.html = render_template(
