@@ -19,7 +19,11 @@ def create_app(client_name='star'):
 
     # Load the correct .env file
     env_file = f'.env.{client_name}'
-    load_dotenv(env_file)
+    if os.path.exists(env_file):
+        load_dotenv(env_file)
+        print(f"Loaded environment from {env_file}")
+    else:
+        print(f"Environment file {env_file} not found - using system environment variables")
 
     # Configure Flask to handle HTTP/2
     app.config['SERVER_NAME'] = None  # Allow any host
@@ -29,12 +33,19 @@ def create_app(client_name='star'):
     app.jinja_env.globals.update(generate_sitemap = generate_sitemap)
 
     # Configure app settings from Config class
-    if client_name == 'star':
-        from project.config.star import Config
-        app.config.from_object(Config)
-    elif client_name == 'se_legacy':
-        from project.config.se_legacy import Config
-        app.config.from_object(Config)
+    try:
+        if client_name == 'star':
+            from project.config.star import Config
+            app.config.from_object(Config)
+        elif client_name == 'se_legacy':
+            from project.config.se_legacy import Config
+            app.config.from_object(Config)
+        else:
+            raise ValueError(f"Unknown client_name: {client_name}")
+        print(f"Loaded config for client: {client_name}")
+    except ImportError as e:
+        print(f"Failed to import config for {client_name}: {e}")
+        raise
 
     # Set secret key for session management
     app.config['SECRET_KEY'] = os.getenv('secret_key', '')
