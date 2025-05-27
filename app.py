@@ -62,7 +62,7 @@ if __name__ == '__main__':
     app.run(
         host='0.0.0.0', 
         port=port, 
-        debug=os.getenv('FLASK_ENV') == 'development',
+        debug=os.getenv('APP_MODE') == 'DEV',
         ssl_context=None,
         threaded=True
     )
