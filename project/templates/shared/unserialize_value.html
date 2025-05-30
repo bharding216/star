@@ -1,0 +1,38 @@
+{% extends client_name + '/base.html' %}
+
+{% block title %}Unserialize Value{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Unserialize Value</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="serialized_value">Serialized Value:</label>
+                            <textarea class="form-control" id="serialized_value" name="serialized_value" rows="3" required>{{ serialized_value or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Unserialize</button>
+                    </form>
+
+                    {% if value is defined and timestamp is defined %}
+                    <div class="mt-4">
+                        <h4>Results:</h4>
+                        <div class="card">
+                            <div class="card-body">
+                                <p><strong>Value:</strong> {{ value }}</p>
+                                <p><strong>Timestamp:</strong> {{ timestamp }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

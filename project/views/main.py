@@ -1227,13 +1227,46 @@ def supplier_settings():
         # The name of the category you are updating.
         field_name = request.form['field_name']
 
+        if field_name in ['ssn', 'ein']:
+            # Unserialize the value
+            s = URLSafeSerializer(os.getenv('secret_key') or '')
+            value, _ = s.loads(getattr(current_user.supplier, field_name))
+            setattr(current_user.supplier, field_name, value)
+
         return render_template(
             f'shared/update_supplier_settings.html', 
-            field_name = field_name
+            field_name=field_name,
+            user=current_user
         )
 
+    # Create a copy of the supplier object to modify for display
+    supplier_display = current_user.supplier
+    
+    # Unserialize SSN and EIN if they exist
+    s = URLSafeSerializer(os.getenv('secret_key') or '')
+    if supplier_display.ssn:
+        try:
+            ssn_value, _ = s.loads(supplier_display.ssn)
+            supplier_display.ssn = ssn_value
+        except:
+            supplier_display.ssn = None
+            flash('SSN not found. Please contact support.', category='error')
+
+    if supplier_display.ein:
+        try:
+            ein_value, _ = s.loads(supplier_display.ein)
+            supplier_display.ein = ein_value
+        except:
+            supplier_display.ein = None
+            flash('EIN not found. Please contact support.', category='error')
+
+    # Create a new user object with the modified supplier
+    user_display = current_user
+    user_display.supplier = supplier_display
+
     return render_template(
-        f'shared/supplier_settings.html', 
+        f'shared/supplier_settings.html',
+        user=user_display
     )
 
 
@@ -1265,6 +1298,14 @@ def update_supplier_settings(field_name):
                 )
 
         supplier_info_obj = current_user.supplier
+
+        # Handle serialization for sensitive fields
+        if field_name in ['ssn', 'ein']:
+            current_time = datetime.datetime.now().time()
+            current_time_str = current_time.strftime('%H:%M:%S')
+            s = URLSafeSerializer(os.getenv('secret_key') or '')
+            new_value = s.dumps([new_value, current_time_str])
+
         setattr(supplier_info_obj, field_name, new_value)
 
         with db.session() as db_session:
@@ -1272,8 +1313,21 @@ def update_supplier_settings(field_name):
             flash('Your settings have been successfully updated!', 'success')
             return redirect(url_for('views.supplier_settings'))
     else:
+        # For GET requests, unserialize the current value if it's a sensitive field
+        if field_name in ['ssn', 'ein']:
+            current_value = getattr(current_user.supplier, field_name)
+            if current_value:
+                try:
+                    s = URLSafeSerializer(os.getenv('secret_key') or '')
+                    value, _ = s.loads(current_value)
+                    setattr(current_user.supplier, field_name, value)
+                except:
+                    setattr(current_user.supplier, field_name, None)
+
         return render_template(
-            f'shared/update_supplier_settings.html'
+            f'shared/update_supplier_settings.html',
+            field_name=field_name,
+            user=current_user
         )
 
 
@@ -1386,6 +1440,7 @@ def login_vendor():
     return render_template(
         f'shared/login_vendor.html',
     )
+
 
 
 @views.route("/reset_password_request/<string:user_type>", methods=['GET', 'POST'])
@@ -1584,6 +1639,33 @@ def robots():
         os.path.join(current_app.root_path, 'static'), 
         StarConfig.CLIENT_NAME + '_robots.txt'
     )
+
+@views.route('/unserialize-value', methods=['GET', 'POST'])
+@login_required
+def unserialize_value():
+    if session.get('user_type') != 'admin':
+        flash('You do not have permission to access this page.', category='error')
+        return redirect(url_for('views.index'))
+
+    if request.method == 'POST':
+        try:
+            serialized_value = request.form['serialized_value']
+            s = URLSafeSerializer(os.getenv('secret_key') or '')
+            value, timestamp = s.loads(serialized_value)
+            
+            return render_template(
+                'shared/unserialize_value.html',
+                value=value,
+                timestamp=timestamp,
+                serialized_value=serialized_value
+            )
+        except BadSignature:
+            flash('Invalid serialized value. Please check the input.', category='error')
+        except Exception as e:
+            flash(f'An error occurred: {str(e)}', category='error')
+            current_app.logger.error(f'Error unserializing value: {str(e)}')
+
+    return render_template('shared/unserialize_value.html')
 
 @views.route('/test-email')
 @login_required
