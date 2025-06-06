@@ -141,7 +141,7 @@
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
                                 <a class="nav-link" aria-current="page" 
-                                    href="{{ url_for('views.logout') }}">
+                                    href="{{ url_for('auth.logout') }}">
                                     Logout
                                 </a>
                             </li>
@@ -233,7 +233,7 @@
 
                     {% if current_user.is_authenticated %}
                     <p class="footer-links">                            
-                        <a href="{{ url_for('views.logout') }}" class="nav-link">Logout</a>
+                        <a href="{{ url_for('auth.logout') }}" class="nav-link">Logout</a>
                     </p>
                     {% endif %}
 
