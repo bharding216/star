@@ -110,7 +110,12 @@ def create_app(client_name='star'):
         # For each view function, assign user=current_user.
         @app.context_processor
         def inject_user():
-            return dict(user=current_user, client_name=client_name)
+            return dict(
+                user=current_user,
+                client_name=client_name,
+                domain='https://www.' + app.config['DOMAIN_NAME'],
+                client_name_title=app.config['CLIENT_NAME_TITLE']
+            )
 
         # Set user type at startup instead of using before_first_request
         @app.before_request

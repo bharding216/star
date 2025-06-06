@@ -63,5 +63,6 @@ class Config:
     MAX_FILE_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
     CLIENT_NAME: str = 'star'
     CLIENT_NAME_TITLE: str = 'STAR'
+    DOMAIN_NAME: str = 'stxresources.org'
     FROM_EMAIL: str = 'hello@stxresources.org'
     S3_BUCKET: str = 'star-uploads-bucket'

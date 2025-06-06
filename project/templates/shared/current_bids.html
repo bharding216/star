@@ -1,6 +1,6 @@
 {% extends client_name + '/base.html' %}
 
-{% block title %}Current Bids | STAR {% endblock %}
+{% block title %}Current Bids | {{ client_name_title }} {% endblock %}
 
 {% block content %}
 
@@ -14,7 +14,7 @@
                     <p>
                         <b>
                             Your business must be 
-                            <a class="hover-link-blue" href="{{ url_for('views.registration_personal') }}">registered</a> with STAR to apply.
+                            <a class="hover-link-blue" href="{{ url_for('views.registration_personal') }}">registered</a> with {{ client_name_title }} to apply.
                         </b>
                     </p>
                 </div>

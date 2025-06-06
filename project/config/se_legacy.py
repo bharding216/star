@@ -63,5 +63,6 @@ class Config:
     MAX_FILE_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
     CLIENT_NAME: str = 'se_legacy'
     CLIENT_NAME_TITLE: str = 'SE Legacy'
+    DOMAIN_NAME: str = 'selegacyconnect.org'
     FROM_EMAIL: str = 'hello@selegacyconnect.org'
     S3_BUCKET: str = 'se-legacy-bucket'

@@ -13,4 +13,4 @@ This application includes features such as:
   <li>Email notifications to bidders based on certain events</li>
 </ul>
 
-See the live version at https://www.stxresources.org
+See the live version at https://www.stxresources.org and https://www.selegacyconnect.org
